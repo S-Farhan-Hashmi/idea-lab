@@ -1,11 +1,11 @@
 /**
- * Door Status Card — animated door icon, open/close detection, timer
+ * Door Status Card — Handcrafted Premium SaaS Style
  */
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { DoorOpen, DoorClosed, Clock, AlertTriangle } from 'lucide-react';
 import { formatDuration } from '../../utils/formatters';
 
-export default function DoorCard({ doorStatus, doorOpenDuration, timeout = 60, index = 4 }) {
+export default function DoorCard({ doorStatus, doorOpenDuration, timeout = 60, index = 3 }) {
   const isOpen = doorStatus === 'open';
   const isTimeout = isOpen && doorOpenDuration >= timeout;
 
@@ -15,28 +15,28 @@ export default function DoorCard({ doorStatus, doorOpenDuration, timeout = 60, i
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 24 }}
+      initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, delay: index * 0.07 }}
+      transition={{ duration: 0.35, delay: index * 0.06 }}
       className="card"
       style={{
-        padding: '24px',
+        padding: '20px',
         display: 'flex',
         flexDirection: 'column',
-        gap: '16px',
-        borderColor: isOpen ? `${statusColor}30` : undefined,
+        gap: '14px',
+        borderColor: isOpen ? `${statusColor}30` : 'var(--border-color)',
         position: 'relative',
-        overflow: 'hidden',
       }}
     >
-      {/* Background pulse when open */}
+      {/* Subtle ambient glow when open */}
       {isOpen && (
         <motion.div
-          animate={{ scale: [1, 1.3, 1], opacity: [0.3, 0, 0.3] }}
-          transition={{ duration: 2, repeat: Infinity }}
+          animate={{ opacity: [0.3, 0.6, 0.3] }}
+          transition={{ duration: 3, repeat: Infinity }}
           style={{
-            position: 'absolute', inset: 0,
-            background: `radial-gradient(circle at center, ${statusColor}10, transparent 70%)`,
+            position: 'absolute', top: 0, right: 0,
+            width: '140px', height: '140px',
+            background: `radial-gradient(circle at 100% 0%, ${statusColor}12 0%, transparent 70%)`,
             pointerEvents: 'none',
           }}
         />
@@ -44,39 +44,51 @@ export default function DoorCard({ doorStatus, doorOpenDuration, timeout = 60, i
 
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 500 }}>
-          DOOR STATUS
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div style={{
+            width: 34, height: 34,
+            background: 'rgba(255,255,255,0.03)',
+            border: '1px solid var(--border-color)',
+            borderRadius: '8px',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            flexShrink: 0,
+          }}>
+            {isOpen ? <DoorOpen size={16} color={statusColor} /> : <DoorClosed size={16} color="var(--text-secondary)" />}
+          </div>
+          <div style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+            DOOR STATUS
+          </div>
         </div>
         {isTimeout && (
-          <span className="badge badge-danger" style={{ animation: 'glow-danger 1.5s infinite' }}>
+          <span className="badge badge-danger" style={{ fontSize: '10px', padding: '1px 7px' }}>
             ⚠ TIMEOUT
           </span>
         )}
       </div>
 
       {/* Animated Door Icon */}
-      <div style={{ display: 'flex', justifyContent: 'center', padding: '12px 0' }}>
+      <div style={{ display: 'flex', justifyContent: 'center', padding: '14px 0' }}>
         <div style={{ position: 'relative' }}>
           {/* Door frame */}
           <div style={{
-            width: 100, height: 120,
-            border: `3px solid rgba(255,255,255,0.1)`,
+            width: 90, height: 110,
+            border: `2px solid rgba(255,255,255,0.08)`,
             borderRadius: '4px 4px 0 0',
             position: 'relative',
-            background: 'rgba(255,255,255,0.02)',
+            background: 'rgba(255,255,255,0.01)',
             overflow: 'hidden',
           }}>
             {/* Animated door panel */}
             <motion.div
               animate={{
-                rotateY: isOpen ? -65 : 0,
-                x: isOpen ? 10 : 0,
+                rotateY: isOpen ? -60 : 0,
+                x: isOpen ? 6 : 0,
               }}
-              transition={{ duration: 0.6, ease: 'easeInOut' }}
+              transition={{ duration: 0.5, ease: 'easeInOut' }}
               style={{
                 position: 'absolute', inset: 0,
-                background: `linear-gradient(135deg, ${statusColor}20, ${statusColor}10)`,
-                border: `1px solid ${statusColor}40`,
+                background: isOpen ? `linear-gradient(135deg, ${statusColor}20, rgba(255,255,255,0.02))` : 'rgba(255,255,255,0.04)',
+                border: `1px solid ${isOpen ? `${statusColor}40` : 'rgba(255,255,255,0.06)'}`,
                 transformOrigin: 'left center',
                 transformStyle: 'preserve-3d',
                 backfaceVisibility: 'hidden',
@@ -84,12 +96,12 @@ export default function DoorCard({ doorStatus, doorOpenDuration, timeout = 60, i
             >
               {/* Door handle */}
               <div style={{
-                position: 'absolute', right: '15px', top: '50%',
-                width: '6px', height: '18px',
-                background: statusColor,
-                borderRadius: '3px',
+                position: 'absolute', right: '12px', top: '50%',
+                width: '4px', height: '16px',
+                background: isOpen ? statusColor : 'var(--text-muted)',
+                borderRadius: '2px',
                 transform: 'translateY(-50%)',
-                boxShadow: `0 0 8px ${statusColor}`,
+                boxShadow: isOpen ? `0 0 8px ${statusColor}` : 'none',
               }} />
             </motion.div>
 
@@ -100,13 +112,15 @@ export default function DoorCard({ doorStatus, doorOpenDuration, timeout = 60, i
                 animate={{ opacity: 1 }}
                 style={{
                   position: 'absolute', inset: 0,
-                  background: 'rgba(59,130,246,0.05)',
+                  background: 'rgba(59,130,246,0.03)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                 }}
               >
                 <div style={{
-                  fontSize: '10px', color: 'var(--text-muted)',
-                  writing: 'vertical',
+                  fontSize: '9px', color: 'var(--text-muted)',
+                  writingMode: 'vertical-rl',
+                  letterSpacing: '0.1em',
+                  fontWeight: 600,
                 }}>
                   OPEN
                 </div>
@@ -115,25 +129,26 @@ export default function DoorCard({ doorStatus, doorOpenDuration, timeout = 60, i
           </div>
           {/* Floor */}
           <div style={{
-            width: '110px', height: '3px',
-            background: 'rgba(255,255,255,0.06)',
-            borderRadius: '2px',
-            marginLeft: '-5px',
+            width: '102px', height: '2px',
+            background: 'rgba(255,255,255,0.08)',
+            borderRadius: '1px',
+            marginLeft: '-6px',
           }} />
         </div>
       </div>
 
       {/* Status + timer */}
-      <div style={{ textAlign: 'center' }}>
+      <div style={{ textAlign: 'center', marginTop: '-4px' }}>
         <motion.div
           key={doorStatus}
-          initial={{ scale: 0.8, opacity: 0 }}
+          initial={{ scale: 0.95, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           style={{
-            fontSize: '24px', fontWeight: 800,
+            fontSize: '22px', fontWeight: 700,
             color: statusColor,
-            textShadow: `0 0 20px ${statusColor}40`,
-            marginBottom: '6px',
+            fontFamily: 'var(--font-mono)',
+            letterSpacing: '-0.03em',
+            marginBottom: '4px',
           }}
         >
           {isOpen ? 'OPEN' : 'CLOSED'}
@@ -141,17 +156,17 @@ export default function DoorCard({ doorStatus, doorOpenDuration, timeout = 60, i
 
         {isOpen && doorOpenDuration > 0 && (
           <div style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px',
             color: isTimeout ? 'var(--danger)' : 'var(--text-secondary)',
-            fontSize: '13px',
+            fontSize: '12px', fontWeight: 500,
           }}>
-            <Clock size={13} />
-            <span>Open for <strong>{formatDuration(doorOpenDuration)}</strong></span>
+            <Clock size={12} />
+            <span>Open for <strong style={{ fontFamily: 'var(--font-mono)' }}>{formatDuration(doorOpenDuration)}</strong></span>
           </div>
         )}
 
         {!isOpen && (
-          <div style={{ color: 'var(--text-muted)', fontSize: '12px' }}>
+          <div style={{ color: 'var(--text-muted)', fontSize: '11px', fontWeight: 500 }}>
             Refrigerator sealed ✓
           </div>
         )}
@@ -159,16 +174,23 @@ export default function DoorCard({ doorStatus, doorOpenDuration, timeout = 60, i
 
       {/* Progress bar for door open timeout */}
       {isOpen && (
-        <div>
+        <div style={{
+          padding: '8px 12px',
+          background: 'rgba(255,255,255,0.02)',
+          border: '1px solid var(--border-color)',
+          borderRadius: '8px',
+          marginTop: '2px',
+        }}>
           <div style={{
             display: 'flex', justifyContent: 'space-between',
-            fontSize: '10px', color: 'var(--text-muted)', marginBottom: '4px',
+            fontSize: '10px', color: 'var(--text-muted)', marginBottom: '5px',
+            fontWeight: 500,
           }}>
             <span>Timeout in {formatDuration(Math.max(0, timeout - doorOpenDuration))}</span>
-            <span>{Math.min(100, Math.round((doorOpenDuration / timeout) * 100))}%</span>
+            <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 600 }}>{Math.min(100, Math.round((doorOpenDuration / timeout) * 100))}%</span>
           </div>
           <div style={{
-            height: '4px', background: 'var(--bg-elevated)',
+            height: '3px', background: 'rgba(255,255,255,0.06)',
             borderRadius: '2px', overflow: 'hidden',
           }}>
             <motion.div

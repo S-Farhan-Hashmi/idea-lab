@@ -1,170 +1,176 @@
 /**
- * Live Monitoring Page — Full-width expanded charts + real-time stats
+ * Live Monitoring Page — OS-style full telemetry view
  */
 import { motion } from 'framer-motion';
-import { Activity, Thermometer, Wind, Droplets, DoorOpen, Zap } from 'lucide-react';
+import { Activity, Thermometer, Wind, Droplets, DoorOpen, Bell, CheckCircle2 } from 'lucide-react';
 import { useData } from '../contexts/DataContext';
 import { FridgeTempChart, RoomTempChart, HumidityChart, DoorEventsChart } from '../components/charts/LiveCharts';
-import { formatTemp, formatHumidity, formatDuration } from '../utils/formatters';
-
-function StatBadge({ label, value, color, icon: Icon }) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.9 }}
-      animate={{ opacity: 1, scale: 1 }}
-      className="card"
-      style={{
-        padding: '16px 20px',
-        display: 'flex', alignItems: 'center', gap: '14px',
-        borderColor: `${color}20`,
-      }}
-    >
-      <div style={{
-        width: 42, height: 42, borderRadius: '11px',
-        background: `${color}15`, border: `1px solid ${color}25`,
-        display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-      }}>
-        <Icon size={20} color={color} />
-      </div>
-      <div>
-        <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 500 }}>{label}</div>
-        <div style={{
-          fontSize: '22px', fontWeight: 800, color,
-          fontFamily: 'var(--font-mono)', lineHeight: 1.2,
-          textShadow: `0 0 12px ${color}40`,
-        }}>
-          {value}
-        </div>
-      </div>
-    </motion.div>
-  );
-}
-
-function ActivityItem({ text, time, color }) {
-  return (
-    <div style={{
-      display: 'flex', gap: '10px', alignItems: 'flex-start',
-      padding: '8px 0',
-      borderBottom: '1px solid var(--border-color)',
-    }}>
-      <div style={{
-        width: 8, height: 8, borderRadius: '50%',
-        background: color, marginTop: '5px', flexShrink: 0,
-      }} />
-      <div style={{ flex: 1 }}>
-        <div style={{ fontSize: '12px', color: 'var(--text-primary)' }}>{text}</div>
-        <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>{time}</div>
-      </div>
-    </div>
-  );
-}
+import { formatTemp, formatHumidity, formatDuration, formatTimeAgo } from '../utils/formatters';
 
 export default function LiveMonitoring() {
   const { sensorData, chartSeries, thresholds } = useData();
 
   if (!sensorData) return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '400px', color: 'var(--text-muted)' }}>
-      Loading sensor data...
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '60vh', color: 'var(--text-muted)' }}>
+      Connecting to sensor telemetry...
     </div>
   );
 
   const { fridgeTemp, roomTemp, humidity, doorStatus, doorOpenDuration, buzzer, alerts } = sensorData;
 
-  // Build activity feed from recent alerts
-  const recentActivity = alerts.slice(0, 10).map(a => ({
-    text: a.message,
-    time: new Date(a.timestamp).toLocaleTimeString(),
-    color: a.priority === 'critical' ? 'var(--danger)' :
-           a.priority === 'medium' ? 'var(--warning)' : 'var(--accent)',
-  }));
+  const recentActivity = (alerts || []).slice(0, 10);
+
+  const tempSafe = fridgeTemp >= thresholds.fridgeTempMin && fridgeTemp <= thresholds.fridgeTempMax;
+  const humSafe = humidity <= thresholds.humidityMax;
 
   return (
-    <div>
-      <div style={{ marginBottom: '24px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '4px' }}>
-          <Activity size={18} color="var(--accent)" />
-          <h1 style={{ fontSize: '20px', fontWeight: 800 }}>Live Monitoring</h1>
-          <span style={{
-            display: 'flex', alignItems: 'center', gap: '5px',
-            fontSize: '11px', color: 'var(--success)',
-            background: 'rgba(16,185,129,0.1)', padding: '3px 10px',
-            borderRadius: '100px', border: '1px solid rgba(16,185,129,0.2)',
+    <div className="page-content">
+      {/* Page header */}
+      <div style={{ marginBottom: '28px', paddingBottom: '20px', borderBottom: '1px solid var(--border-subtle)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '6px' }}>
+          <div style={{
+            width: 34, height: 34, borderRadius: '9px',
+            background: 'var(--safe-dim)', border: '1px solid var(--safe-glow)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>
-            <span className="status-dot online" style={{ width: 6, height: 6 }} />
-            STREAMING LIVE
-          </span>
+            <Activity size={17} color="var(--safe)" />
+          </div>
+          <h1 style={{ fontSize: '20px' }}>Live Telemetry Monitor</h1>
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: '6px',
+            padding: '4px 12px', borderRadius: '100px',
+            background: 'var(--safe-dim)', border: '1px solid var(--safe-glow)',
+          }}>
+            <motion.div
+              animate={{ opacity: [1, 0.3, 1] }}
+              transition={{ duration: 1.5, repeat: Infinity }}
+              style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--safe)' }}
+            />
+            <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--safe)', letterSpacing: '0.05em' }}>STREAMING</span>
+          </div>
         </div>
-        <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
-          Real-time sensor readings — updating every 2 seconds
+        <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginLeft: '48px' }}>
+          Real-time sensor readings updating every 2 seconds via ESP32 → Firebase
         </p>
       </div>
 
       {/* Quick Stats */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
-        gap: '16px',
-        marginBottom: '24px',
-      }}>
-        <StatBadge
-          label="Fridge Temp"
-          value={formatTemp(fridgeTemp)}
-          color={fridgeTemp > thresholds.fridgeTempMax || fridgeTemp < thresholds.fridgeTempMin ? 'var(--danger)' : 'var(--success)'}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '12px', marginBottom: '24px' }}>
+        <LiveStat
           icon={Thermometer}
+          label="Fridge Temperature"
+          value={formatTemp(fridgeTemp)}
+          status={tempSafe ? 'safe' : 'alarm'}
+          note={tempSafe ? 'Within safe zone' : 'Out of range!'}
         />
-        <StatBadge
-          label="Room Temp"
-          value={formatTemp(roomTemp)}
-          color="var(--warning)"
+        <LiveStat
           icon={Wind}
+          label="Room Temperature"
+          value={formatTemp(roomTemp)}
+          status={roomTemp > thresholds.roomTempMax ? 'caution' : 'neutral'}
+          note="Ambient"
         />
-        <StatBadge
+        <LiveStat
+          icon={Droplets}
           label="Humidity"
           value={formatHumidity(humidity)}
-          color={humidity > thresholds.humidityMax ? 'var(--warning)' : 'var(--cyan)'}
-          icon={Droplets}
+          status={humSafe ? 'neutral' : 'caution'}
+          note={`Max ${thresholds.humidityMax}%`}
         />
-        <StatBadge
-          label="Door"
-          value={doorStatus?.toUpperCase()}
-          color={doorStatus === 'open' ? 'var(--danger)' : 'var(--success)'}
+        <LiveStat
           icon={DoorOpen}
+          label="Door Status"
+          value={doorStatus?.toUpperCase()}
+          status={doorStatus === 'open' ? 'alarm' : 'safe'}
+          note={doorStatus === 'open' && doorOpenDuration > 0 ? `Open ${formatDuration(doorOpenDuration)}` : 'Sealed'}
         />
-        <StatBadge
-          label="Buzzer"
+        <LiveStat
+          icon={Bell}
+          label="Alarm"
           value={buzzer ? 'ACTIVE' : 'SILENT'}
-          color={buzzer ? 'var(--danger)' : 'var(--success)'}
-          icon={Zap}
+          status={buzzer ? 'alarm' : 'neutral'}
+          note={buzzer ? 'Acoustic alarm on' : 'No active alarm'}
         />
       </div>
 
-      {/* Charts (full-width) */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', marginBottom: '24px' }}>
+      {/* Charts */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '24px' }}>
         <FridgeTempChart
           data={chartSeries.fridgeTemp}
           safeMin={thresholds.fridgeTempMin}
           safeMax={thresholds.fridgeTempMax}
         />
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
           <RoomTempChart data={chartSeries.roomTemp} />
           <HumidityChart data={chartSeries.humidity} />
         </div>
         <DoorEventsChart data={chartSeries.doorEvents} />
       </div>
 
-      {/* Activity Feed */}
-      <div className="card" style={{ padding: '20px' }}>
-        <h3 style={{ fontSize: '14px', fontWeight: 700, marginBottom: '16px' }}>
-          Live Activity Feed
-        </h3>
+      {/* Activity feed */}
+      <div className="card" style={{ padding: '0', overflow: 'hidden' }}>
+        <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border-subtle)' }}>
+          <div className="panel-label">LIVE EVENT FEED</div>
+        </div>
         {recentActivity.length === 0 ? (
-          <div style={{ color: 'var(--text-muted)', fontSize: '13px', textAlign: 'center', padding: '20px' }}>
-            No recent activity
+          <div style={{ padding: '48px', textAlign: 'center', color: 'var(--text-muted)' }}>
+            <CheckCircle2 size={28} color="var(--safe)" style={{ margin: '0 auto 10px', opacity: 0.4 }} />
+            <div style={{ fontSize: '13px' }}>No recent events</div>
           </div>
-        ) : recentActivity.map((item, i) => (
-          <ActivityItem key={i} {...item} />
-        ))}
+        ) : recentActivity.map((a, i) => {
+          const color = a.priority === 'critical' || a.priority === 'high' ? 'var(--alarm)' :
+                        a.priority === 'medium' ? 'var(--caution)' : 'var(--text-muted)';
+          return (
+            <motion.div
+              key={a.id}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: a.acknowledged ? 0.5 : 1 }}
+              style={{
+                display: 'flex', gap: '12px', alignItems: 'flex-start',
+                padding: '12px 20px',
+                borderBottom: '1px solid var(--border-subtle)',
+                transition: 'background 0.15s',
+              }}
+              onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.02)'}
+              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+            >
+              <div style={{ width: 7, height: 7, borderRadius: '50%', background: color, marginTop: '4px', flexShrink: 0, boxShadow: `0 0 4px ${color}` }} />
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: '13px', color: 'var(--text-primary)', marginBottom: '2px' }}>{a.message}</div>
+                <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>{formatTimeAgo(a.timestamp)}</div>
+              </div>
+            </motion.div>
+          );
+        })}
       </div>
     </div>
+  );
+}
+
+function LiveStat({ icon: Icon, label, value, status, note }) {
+  const colors = {
+    safe:    'var(--safe)',
+    alarm:   'var(--alarm)',
+    caution: 'var(--caution)',
+    neutral: 'var(--text-secondary)',
+  };
+  const color = colors[status] || colors.neutral;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="card"
+      style={{ padding: '16px 18px' }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
+        <Icon size={14} color={color} />
+        <span className="panel-label">{label.toUpperCase()}</span>
+      </div>
+      <div style={{ fontSize: '22px', fontWeight: 700, fontFamily: 'var(--font-mono)', color, letterSpacing: '-0.03em', lineHeight: 1, marginBottom: '6px' }}>
+        {value}
+      </div>
+      <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 400 }}>{note}</div>
+    </motion.div>
   );
 }
