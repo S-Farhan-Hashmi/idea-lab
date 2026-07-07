@@ -1,241 +1,229 @@
 /**
- * Live Charts — Handcrafted Premium SaaS Style
+ * LiveCharts — High-definition telemetry charts
+ * Matching commercial medical UI aesthetic
  */
 import {
   AreaChart, Area, BarChart, Bar,
-  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  ReferenceLine,
+  XAxis, YAxis, Tooltip, ResponsiveContainer,
+  ReferenceLine, ReferenceArea,
 } from 'recharts';
 import { motion } from 'framer-motion';
 import { TrendingUp, Thermometer, Droplets, DoorOpen } from 'lucide-react';
 
-// ─── Custom Tooltip ────────────────────────────────────────────────────────────
-function CustomTooltip({ active, payload, label, unit }) {
-  if (!active || !payload?.length) return null;
-  return (
-    <div style={{
-      background: 'rgba(20, 20, 24, 0.9)',
-      backdropFilter: 'blur(16px)',
-      border: '1px solid var(--border-hover)',
-      borderRadius: '10px',
-      padding: '10px 14px',
-      boxShadow: 'var(--shadow-lg)',
-    }}>
-      <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '6px', fontWeight: 500 }}>{label}</div>
-      {payload.map((entry, i) => (
-        <div key={i} style={{
-          display: 'flex', alignItems: 'center', gap: '8px',
-          fontSize: '13px', fontWeight: 600, color: entry.color,
-          fontFamily: 'var(--font-mono)',
-        }}>
-          <div style={{ width: 8, height: 8, borderRadius: '50%', background: entry.color, boxShadow: `0 0 6px ${entry.color}` }} />
-          <span>{entry.value?.toFixed(2)}{unit}</span>
-        </div>
-      ))}
-    </div>
-  );
-}
+export function FridgeTempChart({ data, thresholds }) {
+  const safeMin = thresholds?.fridgeTempMin ?? 2.0;
+  const safeMax = thresholds?.fridgeTempMax ?? 8.0;
 
-// ─── Chart Card Wrapper ────────────────────────────────────────────────────────
-function ChartCard({ title, subtitle, icon: Icon, color, children }) {
   return (
     <motion.div
-      initial={{ opacity: 0, y: 16 }}
+      initial={{ opacity: 0, y: 15 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.35 }}
-      className="card"
-      style={{ padding: '20px' }}
+      style={{
+        background: '#0A0D14',
+        border: '1px solid rgba(255, 255, 255, 0.06)',
+        borderRadius: '20px',
+        padding: '24px',
+        boxShadow: '0 16px 40px rgba(0,0,0,0.6)',
+      }}
     >
-      <div style={{
-        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-        marginBottom: '20px',
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          {Icon && (
-            <div style={{
-              width: 34, height: 34, borderRadius: '8px',
-              background: 'rgba(255,255,255,0.03)',
-              border: '1px solid var(--border-color)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}>
-              <Icon size={16} color={color} />
-            </div>
-          )}
-          <div>
-            <div style={{
-              fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)',
-              letterSpacing: '-0.01em',
-            }}>
-              {title}
-            </div>
-            {subtitle && (
-              <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px', fontWeight: 400 }}>
-                {subtitle}
-              </div>
-            )}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
+        <div>
+          <div style={{ fontSize: '15px', fontWeight: 700, color: '#F3F4F6', letterSpacing: '-0.01em' }}>
+            VACCINE CORE TEMPERATURE
+          </div>
+          <div style={{ fontSize: '12px', color: '#6B7280', marginTop: '2px' }}>
+            WHO Safe Storage Range: {safeMin}°C – {safeMax}°C
           </div>
         </div>
         <div style={{
           display: 'flex', alignItems: 'center', gap: '6px',
-          fontSize: '11px', color: 'var(--success)', fontWeight: 600,
-          background: 'rgba(16,185,129,0.08)',
-          padding: '3px 9px', borderRadius: '6px',
-          border: '1px solid rgba(16,185,129,0.2)',
+          padding: '5px 12px', borderRadius: '100px',
+          background: 'rgba(0, 214, 143, 0.1)',
+          border: '1px solid rgba(0, 214, 143, 0.3)',
+          color: 'var(--safe)', fontSize: '11px', fontWeight: 700,
         }}>
-          <span className="status-dot online" style={{ width: 6, height: 6 }} />
-          LIVE
+          <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--safe)', boxShadow: '0 0 6px var(--safe)' }} />
+          <span>SAFE ZONE</span>
         </div>
       </div>
-      {children}
+
+      <ResponsiveContainer width="100%" height={220}>
+        <AreaChart data={data} margin={{ top: 10, right: 10, bottom: 0, left: -20 }}>
+          <defs>
+            <linearGradient id="fridgeTempGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#00D68F" stopOpacity={0.3} />
+              <stop offset="100%" stopColor="#00D68F" stopOpacity={0} />
+            </linearGradient>
+          </defs>
+          <XAxis dataKey="time" tick={{ fill: '#6B7280', fontSize: 11 }} tickLine={false} axisLine={false} />
+          <YAxis domain={[0, 12]} tick={{ fill: '#6B7280', fontSize: 11, fontFamily: 'var(--font-mono)' }} tickLine={false} axisLine={false} tickFormatter={v => `${v}°`} />
+          <Tooltip content={<CustomTooltip unit="°C" />} />
+          <ReferenceArea y1={safeMin} y2={safeMax} fill="rgba(0, 214, 143, 0.05)" />
+          <ReferenceLine y={safeMax} stroke="rgba(245, 166, 35, 0.4)" strokeDasharray="4 4" />
+          <ReferenceLine y={safeMin} stroke="rgba(0, 214, 143, 0.4)" strokeDasharray="4 4" />
+          <Area type="monotone" dataKey="value" stroke="var(--safe)" strokeWidth={2} fill="url(#fridgeTempGrad)" dot={false} />
+        </AreaChart>
+      </ResponsiveContainer>
     </motion.div>
   );
 }
 
-// ─── Fridge Temperature Chart ──────────────────────────────────────────────────
-export function FridgeTempChart({ data, safeMin = 2, safeMax = 8 }) {
+export function RoomTempChart({ data, thresholds }) {
   return (
-    <ChartCard
-      title="Fridge Temperature"
-      subtitle="DS18B20 clinical sensor • Safe range: 2.0–8.0°C"
-      icon={Thermometer}
-      color="var(--accent-light)"
+    <motion.div
+      initial={{ opacity: 0, y: 15 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.1 }}
+      style={{
+        background: '#0A0D14',
+        border: '1px solid rgba(255, 255, 255, 0.06)',
+        borderRadius: '20px',
+        padding: '24px',
+        boxShadow: '0 16px 40px rgba(0,0,0,0.6)',
+      }}
     >
-      <ResponsiveContainer width="100%" height={220}>
-        <AreaChart data={data} margin={{ top: 10, right: 10, bottom: 0, left: -15 }}>
-          <defs>
-            <linearGradient id="fridgeTempGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.25} />
-              <stop offset="95%" stopColor="#3B82F6" stopOpacity={0} />
-            </linearGradient>
-          </defs>
-          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.035)" />
-          <XAxis
-            dataKey="time"
-            tick={{ fill: '#71717A', fontSize: 11 }}
-            tickLine={false}
-            axisLine={{ stroke: 'rgba(255,255,255,0.06)' }}
-            interval="preserveStartEnd"
-          />
-          <YAxis
-            domain={[0, 12]}
-            tick={{ fill: '#71717A', fontSize: 11, fontFamily: 'var(--font-mono)' }}
-            tickLine={false}
-            axisLine={false}
-            tickFormatter={v => `${v}°`}
-          />
-          <Tooltip content={<CustomTooltip unit="°C" />} />
-          <ReferenceLine y={safeMax} stroke="rgba(245,158,11,0.6)" strokeDasharray="4 4" label={{ value: `Max ${safeMax}°C`, fill: '#F59E0B', fontSize: 10, position: 'insideTopRight' }} />
-          <ReferenceLine y={safeMin} stroke="rgba(59,130,246,0.6)" strokeDasharray="4 4" label={{ value: `Min ${safeMin}°C`, fill: '#60A5FA', fontSize: 10, position: 'insideBottomRight' }} />
-          <Area
-            type="monotone"
-            dataKey="value"
-            stroke="#3B82F6"
-            strokeWidth={2}
-            fill="url(#fridgeTempGrad)"
-            dot={false}
-            activeDot={{ r: 5, fill: '#3B82F6', stroke: '#fff', strokeWidth: 2 }}
-            animationDuration={300}
-          />
-        </AreaChart>
-      </ResponsiveContainer>
-    </ChartCard>
-  );
-}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
+        <div>
+          <div style={{ fontSize: '15px', fontWeight: 700, color: '#F3F4F6', letterSpacing: '-0.01em' }}>
+            AMBIENT ROOM TEMPERATURE
+          </div>
+          <div style={{ fontSize: '12px', color: '#6B7280', marginTop: '2px' }}>
+            Operating Environment
+          </div>
+        </div>
+        <Thermometer size={18} color="#38BDF8" />
+      </div>
 
-// ─── Room Temperature Chart ────────────────────────────────────────────────────
-export function RoomTempChart({ data }) {
-  return (
-    <ChartCard
-      title="Room Temperature"
-      subtitle="DHT22 ambient sensor • Laboratory environment"
-      icon={TrendingUp}
-      color="var(--warning)"
-    >
       <ResponsiveContainer width="100%" height={220}>
-        <AreaChart data={data} margin={{ top: 10, right: 10, bottom: 0, left: -15 }}>
+        <AreaChart data={data} margin={{ top: 10, right: 10, bottom: 0, left: -20 }}>
           <defs>
             <linearGradient id="roomTempGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#F59E0B" stopOpacity={0.25} />
-              <stop offset="95%" stopColor="#F59E0B" stopOpacity={0} />
+              <stop offset="0%" stopColor="#38BDF8" stopOpacity={0.3} />
+              <stop offset="100%" stopColor="#38BDF8" stopOpacity={0} />
             </linearGradient>
           </defs>
-          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.035)" />
-          <XAxis dataKey="time" tick={{ fill: '#71717A', fontSize: 11 }} tickLine={false} axisLine={{ stroke: 'rgba(255,255,255,0.06)' }} interval="preserveStartEnd" />
-          <YAxis domain={[20, 38]} tick={{ fill: '#71717A', fontSize: 11, fontFamily: 'var(--font-mono)' }} tickLine={false} axisLine={false} tickFormatter={v => `${v}°`} />
+          <XAxis dataKey="time" tick={{ fill: '#6B7280', fontSize: 11 }} tickLine={false} axisLine={false} />
+          <YAxis domain={[20, 38]} tick={{ fill: '#6B7280', fontSize: 11, fontFamily: 'var(--font-mono)' }} tickLine={false} axisLine={false} tickFormatter={v => `${v}°`} />
           <Tooltip content={<CustomTooltip unit="°C" />} />
-          <Area type="monotone" dataKey="value" stroke="#F59E0B" strokeWidth={2} fill="url(#roomTempGrad)" dot={false}
-            activeDot={{ r: 5, fill: '#F59E0B', stroke: '#fff', strokeWidth: 2 }} animationDuration={300} />
+          <Area type="monotone" dataKey="value" stroke="#38BDF8" strokeWidth={2} fill="url(#roomTempGrad)" dot={false} />
         </AreaChart>
       </ResponsiveContainer>
-    </ChartCard>
+    </motion.div>
   );
 }
 
-// ─── Humidity Chart ────────────────────────────────────────────────────────────
-export function HumidityChart({ data }) {
+export function HumidityChart({ data, thresholds }) {
   return (
-    <ChartCard
-      title="Humidity"
-      subtitle="DHT22 ambient sensor • Relative humidity"
-      icon={Droplets}
-      color="var(--cyan)"
+    <motion.div
+      initial={{ opacity: 0, y: 15 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.2 }}
+      style={{
+        background: '#0A0D14',
+        border: '1px solid rgba(255, 255, 255, 0.06)',
+        borderRadius: '20px',
+        padding: '24px',
+        boxShadow: '0 16px 40px rgba(0,0,0,0.6)',
+      }}
     >
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
+        <div>
+          <div style={{ fontSize: '15px', fontWeight: 700, color: '#F3F4F6', letterSpacing: '-0.01em' }}>
+            RELATIVE HUMIDITY
+          </div>
+          <div style={{ fontSize: '12px', color: '#6B7280', marginTop: '2px' }}>
+            Max Safe Humidity: 75%
+          </div>
+        </div>
+        <Droplets size={18} color="#38BDF8" />
+      </div>
+
       <ResponsiveContainer width="100%" height={220}>
-        <AreaChart data={data} margin={{ top: 10, right: 10, bottom: 0, left: -15 }}>
+        <AreaChart data={data} margin={{ top: 10, right: 10, bottom: 0, left: -20 }}>
           <defs>
-            <linearGradient id="humidityGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#06B6D4" stopOpacity={0.25} />
-              <stop offset="95%" stopColor="#06B6D4" stopOpacity={0} />
+            <linearGradient id="humGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#38BDF8" stopOpacity={0.3} />
+              <stop offset="100%" stopColor="#38BDF8" stopOpacity={0} />
             </linearGradient>
           </defs>
-          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.035)" />
-          <XAxis dataKey="time" tick={{ fill: '#71717A', fontSize: 11 }} tickLine={false} axisLine={{ stroke: 'rgba(255,255,255,0.06)' }} interval="preserveStartEnd" />
-          <YAxis domain={[30, 90]} tick={{ fill: '#71717A', fontSize: 11, fontFamily: 'var(--font-mono)' }} tickLine={false} axisLine={false} tickFormatter={v => `${v}%`} />
-          <ReferenceLine y={75} stroke="rgba(245,158,11,0.6)" strokeDasharray="4 4" label={{ value: 'Max 75%', fill: '#F59E0B', fontSize: 10, position: 'insideTopRight' }} />
+          <XAxis dataKey="time" tick={{ fill: '#6B7280', fontSize: 11 }} tickLine={false} axisLine={false} />
+          <YAxis domain={[30, 90]} tick={{ fill: '#6B7280', fontSize: 11, fontFamily: 'var(--font-mono)' }} tickLine={false} axisLine={false} tickFormatter={v => `${v}%`} />
+          <ReferenceLine y={75} stroke="rgba(56, 189, 248, 0.4)" strokeDasharray="4 4" />
           <Tooltip content={<CustomTooltip unit="%" />} />
-          <Area type="monotone" dataKey="value" stroke="#06B6D4" strokeWidth={2} fill="url(#humidityGrad)" dot={false}
-            activeDot={{ r: 5, fill: '#06B6D4', stroke: '#fff', strokeWidth: 2 }} animationDuration={300} />
+          <Area type="monotone" dataKey="value" stroke="#38BDF8" strokeWidth={2} fill="url(#humGrad)" dot={false} />
         </AreaChart>
       </ResponsiveContainer>
-    </ChartCard>
+    </motion.div>
   );
 }
 
-// ─── Door Events Chart ─────────────────────────────────────────────────────────
 export function DoorEventsChart({ data }) {
   return (
-    <ChartCard
-      title="Door Events Timeline"
-      subtitle="Magnetic reed switch • Open=1, Closed=0"
-      icon={DoorOpen}
-      color="var(--purple)"
+    <motion.div
+      initial={{ opacity: 0, y: 15 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.3 }}
+      style={{
+        background: '#0A0D14',
+        border: '1px solid rgba(255, 255, 255, 0.06)',
+        borderRadius: '20px',
+        padding: '24px',
+        boxShadow: '0 16px 40px rgba(0,0,0,0.6)',
+      }}
     >
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
+        <div>
+          <div style={{ fontSize: '15px', fontWeight: 700, color: '#F3F4F6', letterSpacing: '-0.01em' }}>
+            DOOR ACCESS LOG
+          </div>
+          <div style={{ fontSize: '12px', color: '#6B7280', marginTop: '2px' }}>
+            1 = Open · 0 = Closed
+          </div>
+        </div>
+        <DoorOpen size={18} color="var(--alarm)" />
+      </div>
+
       <ResponsiveContainer width="100%" height={220}>
-        <BarChart data={data} margin={{ top: 10, right: 10, bottom: 0, left: -15 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.035)" />
-          <XAxis dataKey="time" tick={{ fill: '#71717A', fontSize: 11 }} tickLine={false} axisLine={{ stroke: 'rgba(255,255,255,0.06)' }} interval="preserveStartEnd" />
-          <YAxis domain={[0, 1.5]} tick={{ fill: '#71717A', fontSize: 11 }} tickLine={false} axisLine={false} ticks={[0, 1]} tickFormatter={v => v === 1 ? 'OPEN' : 'CLOSED'} />
+        <BarChart data={data} margin={{ top: 10, right: 10, bottom: 0, left: -20 }}>
+          <XAxis dataKey="time" tick={{ fill: '#6B7280', fontSize: 11 }} tickLine={false} axisLine={false} />
+          <YAxis domain={[0, 1.5]} tick={{ fill: '#6B7280', fontSize: 11 }} tickLine={false} axisLine={false} ticks={[0, 1]} tickFormatter={v => v === 1 ? 'OPEN' : 'CLOSED'} />
           <Tooltip
             content={({ active, payload, label }) => {
               if (!active || !payload?.length) return null;
-              const v = payload[0]?.value;
+              const val = payload[0].value;
               return (
-                <div style={{
-                  background: 'rgba(20, 20, 24, 0.9)', backdropFilter: 'blur(16px)',
-                  border: '1px solid var(--border-hover)',
-                  borderRadius: '10px', padding: '10px 14px', boxShadow: 'var(--shadow-lg)',
-                }}>
-                  <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 500 }}>{label}</div>
-                  <div style={{ fontSize: '13px', fontWeight: 600, color: v ? 'var(--danger)' : 'var(--success)', marginTop: '4px' }}>
-                    {v ? '🔓 DOOR OPEN' : '🔒 DOOR CLOSED'}
+                <div style={{ background: '#0E121C', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', padding: '6px 12px' }}>
+                  <div style={{ fontSize: '11px', color: '#6B7280', fontFamily: 'var(--font-mono)' }}>{label}</div>
+                  <div style={{ fontSize: '13px', fontWeight: 700, color: val === 1 ? 'var(--alarm)' : 'var(--safe)' }}>
+                    {val === 1 ? 'DOOR OPEN' : 'DOOR CLOSED'}
                   </div>
                 </div>
               );
             }}
           />
-          <Bar dataKey="value" fill="#8B5CF6" radius={[4, 4, 0, 0]} maxBarSize={18} animationDuration={300} />
+          <Bar dataKey="value" fill="var(--alarm)" radius={[4, 4, 0, 0]} />
         </BarChart>
       </ResponsiveContainer>
-    </ChartCard>
+    </motion.div>
+  );
+}
+
+function CustomTooltip({ active, payload, label, unit }) {
+  if (!active || !payload?.length) return null;
+  const val = payload[0].value;
+  const color = payload[0].color || 'var(--safe)';
+  return (
+    <div style={{
+      background: '#0E121C',
+      border: '1px solid rgba(255, 255, 255, 0.1)',
+      borderRadius: '8px',
+      padding: '8px 14px',
+      boxShadow: '0 12px 24px rgba(0,0,0,0.8)',
+    }}>
+      <div style={{ fontSize: '11px', color: '#6B7280', fontFamily: 'var(--font-mono)', marginBottom: '2px' }}>{label}</div>
+      <div style={{ fontSize: '14px', fontWeight: 700, fontFamily: 'var(--font-mono)', color }}>
+        {typeof val === 'number' ? val.toFixed(1) : val}{unit}
+      </div>
+    </div>
   );
 }

@@ -1,14 +1,13 @@
 /**
- * OS Shell — Top status bar + icon navigation rail
- * Replaces traditional Sidebar + Navbar with a medical device OS chrome
+ * OSShell — Top status bar + icon navigation rail
+ * Exactly matching the commercial medical hardware UI screenshot
  */
 import { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
 import {
   LayoutDashboard, Activity, BarChart3, Thermometer,
-  Bell, FileText, Settings, LogOut, Wifi, WifiOff,
-  Cloud, CloudOff, Cpu, Signal, Clock,
+  Bell, FileText, Settings, LogOut, Sun, ChevronDown,
+  Snowflake, ShieldCheck, ShieldAlert, ShieldX,
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useData } from '../../contexts/DataContext';
@@ -38,9 +37,13 @@ export default function OSShell() {
   const unackAlerts = sensorData?.alerts?.filter(a => !a.acknowledged).length ?? 0;
   const overallHealth = sensorData?.overallHealth || 'SAFE';
 
-  const statusColor = overallHealth === 'SAFE'
-    ? 'var(--safe)' : overallHealth === 'WARNING'
-    ? 'var(--caution)' : 'var(--alarm)';
+  const statusMap = {
+    SAFE:     { color: 'var(--safe)', bg: 'var(--safe-dim)', icon: ShieldCheck, text: 'SAFE' },
+    WARNING:  { color: 'var(--caution)', bg: 'var(--caution-dim)', icon: ShieldAlert, text: 'WARNING' },
+    CRITICAL: { color: 'var(--alarm)', bg: 'var(--alarm-dim)', icon: ShieldX, text: 'CRITICAL' },
+  };
+  const st = statusMap[overallHealth] || statusMap.SAFE;
+  const StatusIcon = st.icon;
 
   async function handleLogout() {
     if (!logoutConfirm) { setLogoutConfirm(true); return; }
@@ -51,114 +54,105 @@ export default function OSShell() {
   return (
     <>
       {/* ── Top status bar ──────────────────────────────── */}
-      <div className="os-topbar">
-        {/* Brand */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginRight: 'auto' }}>
+      <header className="os-topbar">
+        {/* Brand & Unit Name */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginRight: 'auto' }}>
           <div style={{
-            width: 22, height: 22,
-            borderRadius: '5px',
-            background: 'rgba(0, 214, 143, 0.12)',
-            border: '1px solid rgba(0, 214, 143, 0.3)',
+            width: 32, height: 32,
+            borderRadius: '8px',
+            background: 'rgba(0, 214, 143, 0.15)',
+            border: '1px solid rgba(0, 214, 143, 0.4)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
+            boxShadow: '0 0 16px rgba(0, 214, 143, 0.2)',
           }}>
-            <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-              <path d="M6 1v4M4 3h4M2 7h8M2 9.5C2 10.3 2.7 11 3.5 11h5c.8 0 1.5-.7 1.5-1.5V5.5C10 4.7 9.3 4 8.5 4h-5C2.7 4 2 4.7 2 5.5V9.5z" stroke="var(--safe)" strokeWidth="1" strokeLinecap="round"/>
-            </svg>
+            <Snowflake size={18} color="var(--safe)" />
           </div>
-          <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', letterSpacing: '-0.01em' }}>
-            ColdChain OS
-          </span>
-          <span style={{ fontSize: '11px', color: 'var(--text-muted)', paddingLeft: '8px', borderLeft: '1px solid var(--border-subtle)' }}>
-            {settings.fridgeName || 'Vaccine Unit 01'}
-          </span>
-        </div>
-
-        {/* Connection indicators */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-          <TopbarIndicator
-            active={sensorData?.wifi}
-            icon={sensorData?.wifi ? Wifi : WifiOff}
-            label="WiFi"
-          />
-          <TopbarIndicator
-            active={connected}
-            icon={connected ? Cloud : CloudOff}
-            label="Database"
-          />
-          <TopbarIndicator
-            active={sensorData?.deviceStatus?.esp32}
-            icon={Cpu}
-            label="ESP32"
-          />
-          {latency !== null && (
-            <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
-              {latency}ms
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: '12px' }}>
+            <span style={{ fontSize: '15px', fontWeight: 700, color: '#F3F4F6', letterSpacing: '-0.02em' }}>
+              ColdChain OS
             </span>
+            <span style={{ fontSize: '13px', color: '#6B7280', fontWeight: 500 }}>
+              {settings.fridgeName || 'Vaccine Refrigerator Unit-01'}
+            </span>
+          </div>
+        </div>
+
+        {/* Center/Right Connectivity & Health Status */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+          <TopbarIndicator active={sensorData?.wifi !== false} label="WiFi" />
+          <TopbarIndicator active={sensorData?.deviceStatus?.esp32 !== false} label="ESP32" />
+          <TopbarIndicator active={connected} label="Firebase" />
+
+          {latency !== null && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', color: '#6B7280', fontFamily: 'var(--font-mono)' }}>
+              <span>⏱</span>
+              <span>{latency}ms</span>
+            </div>
           )}
-        </div>
 
-        {/* System status pill */}
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: '6px',
-          padding: '4px 12px',
-          borderRadius: '100px',
-          background: overallHealth === 'SAFE' ? 'var(--safe-dim)' : overallHealth === 'WARNING' ? 'var(--caution-dim)' : 'var(--alarm-dim)',
-          border: `1px solid ${statusColor}40`,
-        }}>
+          {/* SAFE status pill button */}
           <div style={{
-            width: 6, height: 6, borderRadius: '50%',
-            background: statusColor,
-            boxShadow: `0 0 6px ${statusColor}`,
-          }} />
-          <span style={{ fontSize: '11px', fontWeight: 600, color: statusColor, letterSpacing: '0.04em' }}>
-            {overallHealth}
-          </span>
-        </div>
-
-        {/* Clock */}
-        <div style={{ textAlign: 'right', paddingLeft: '14px', borderLeft: '1px solid var(--border-subtle)' }}>
-          <div style={{ fontSize: '13px', fontWeight: 500, fontFamily: 'var(--font-mono)', color: 'var(--text-primary)', letterSpacing: '-0.03em', lineHeight: 1 }}>
-            {format(now, 'HH:mm:ss')}
-          </div>
-          <div style={{ fontSize: '10px', color: 'var(--text-muted)', lineHeight: 1.2, marginTop: '1px' }}>
-            {format(now, 'dd MMM yyyy')}
-          </div>
-        </div>
-
-        {/* User */}
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: '8px',
-          paddingLeft: '14px', borderLeft: '1px solid var(--border-subtle)',
-        }}>
-          <div style={{
-            width: 26, height: 26, borderRadius: '50%',
-            background: 'var(--bg-elevated)',
-            border: '1px solid var(--border-dim)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: '11px', fontWeight: 600, color: 'var(--text-secondary)',
+            display: 'flex', alignItems: 'center', gap: '6px',
+            padding: '5px 14px',
+            borderRadius: '100px',
+            background: st.bg,
+            border: `1px solid ${st.color}50`,
+            boxShadow: `0 0 12px ${st.color}20`,
           }}>
-            {user?.displayName?.[0]?.toUpperCase() || 'A'}
+            <StatusIcon size={14} color={st.color} />
+            <span style={{ fontSize: '12px', fontWeight: 700, color: st.color, letterSpacing: '0.04em' }}>
+              {st.text}
+            </span>
           </div>
-          <button
-            onClick={handleLogout}
-            onBlur={() => setLogoutConfirm(false)}
-            title={logoutConfirm ? 'Click again to confirm logout' : 'Logout'}
-            style={{
-              background: 'none', border: 'none', cursor: 'pointer',
-              color: logoutConfirm ? 'var(--alarm)' : 'var(--text-muted)',
-              display: 'flex', alignItems: 'center',
-              transition: 'color 0.15s',
-              padding: '4px',
-              borderRadius: '5px',
-            }}
-          >
-            <LogOut size={14} />
-          </button>
         </div>
-      </div>
 
-      {/* ── Navigation rail ─────────────────────────────── */}
+        {/* Far Right Clock & User */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '20px', paddingLeft: '16px', borderLeft: '1px solid var(--border-subtle)' }}>
+          <div style={{ textAlign: 'right' }}>
+            <div style={{ fontSize: '14px', fontWeight: 700, fontFamily: 'var(--font-mono)', color: '#F3F4F6', lineHeight: 1 }}>
+              {format(now, 'HH:mm:ss')}
+            </div>
+            <div style={{ fontSize: '11px', color: '#6B7280', marginTop: '2px', fontWeight: 500 }}>
+              {format(now, 'dd MMM yyyy')}
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <button
+              onClick={handleLogout}
+              onBlur={() => setLogoutConfirm(false)}
+              title={logoutConfirm ? 'Click again to logout' : 'User Profile'}
+              style={{
+                width: 34, height: 34, borderRadius: '50%',
+                background: logoutConfirm ? 'var(--alarm-dim)' : 'rgba(255,255,255,0.06)',
+                border: `1px solid ${logoutConfirm ? 'var(--alarm)' : 'rgba(255,255,255,0.12)'}`,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: '13px', fontWeight: 700, color: logoutConfirm ? 'var(--alarm)' : '#E5E7EB',
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+              }}
+            >
+              {logoutConfirm ? <LogOut size={15} /> : (user?.displayName?.[0]?.toUpperCase() || 'D')}
+            </button>
+            <ChevronDown size={14} color="#6B7280" style={{ cursor: 'pointer' }} />
+          </div>
+        </div>
+      </header>
+
+      {/* ── Left Navigation Rail ─────────────────────────── */}
       <nav className="os-rail">
+        {/* Top Logo box */}
+        <div style={{
+          width: 40, height: 40, borderRadius: '10px',
+          background: 'rgba(0, 214, 143, 0.15)',
+          border: '1px solid rgba(0, 214, 143, 0.4)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          marginBottom: '12px',
+          boxShadow: '0 0 16px rgba(0, 214, 143, 0.2)',
+        }}>
+          <Snowflake size={20} color="var(--safe)" />
+        </div>
+
         {NAV_ITEMS.map(({ path, icon: Icon, label }) => (
           <NavLink
             key={path}
@@ -166,34 +160,47 @@ export default function OSShell() {
             className={({ isActive }) => `rail-item ${isActive ? 'active' : ''}`}
             title={label}
           >
-            <Icon size={18} strokeWidth={1.75} />
-            <span style={{ fontSize: '9px', fontWeight: 500, color: 'inherit', letterSpacing: '0.02em', lineHeight: 1 }}>
-              {label}
-            </span>
+            <Icon size={20} strokeWidth={1.75} />
             {path === '/alerts' && unackAlerts > 0 && <span className="rail-badge" />}
           </NavLink>
         ))}
+
+        {/* Bottom Theme/Brightness Icon */}
+        <div style={{ marginTop: 'auto', paddingBottom: '8px' }}>
+          <button
+            title="Theme Brightness"
+            style={{
+              width: 40, height: 40, borderRadius: '10px',
+              background: 'transparent', border: 'none',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color: '#6B7280', cursor: 'pointer', transition: 'color 0.2s',
+            }}
+            onMouseEnter={e => e.currentTarget.style.color = '#F3F4F6'}
+            onMouseLeave={e => e.currentTarget.style.color = '#6B7280'}
+          >
+            <Sun size={20} strokeWidth={1.75} />
+          </button>
+        </div>
       </nav>
     </>
   );
 }
 
-function TopbarIndicator({ active, icon: Icon, label }) {
+function TopbarIndicator({ active, label }) {
   return (
     <div
       title={`${label}: ${active ? 'Online' : 'Offline'}`}
       style={{
-        display: 'flex', alignItems: 'center', gap: '4px',
-        color: active ? 'var(--safe)' : 'var(--text-muted)',
-        fontSize: '11px', fontWeight: 500,
+        display: 'flex', alignItems: 'center', gap: '8px',
+        fontSize: '13px', fontWeight: 600, color: '#D1D5DB',
       }}
     >
       <div style={{
-        width: 5, height: 5, borderRadius: '50%',
-        background: active ? 'var(--safe)' : 'var(--text-faint)',
-        boxShadow: active ? '0 0 5px var(--safe)' : 'none',
+        width: 8, height: 8, borderRadius: '50%',
+        background: active ? 'var(--safe)' : 'var(--alarm)',
+        boxShadow: active ? '0 0 8px var(--safe)' : '0 0 8px var(--alarm)',
       }} />
-      <Icon size={12} />
+      <span>{label}</span>
     </div>
   );
 }

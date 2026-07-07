@@ -1,12 +1,6 @@
 /**
  * Dashboard — Pharmaceutical Refrigerator Cockpit
- * The ONE screen that answers: "Is my refrigerator safe?"
- *
- * Layout:
- *   LEFT  — Device & sensor status panel
- *   CENTER — SVG refrigerator + primary telemetry
- *   RIGHT  — Live event timeline
- *   BOTTOM — Temperature & humidity trend charts
+ * Exact aesthetic match to commercial medical device UI screenshot
  */
 import { useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -15,6 +9,7 @@ import {
   Thermometer, Droplets, DoorOpen, DoorClosed,
   Bell, BellOff, Activity, ShieldCheck, ShieldAlert, ShieldX,
   CheckCircle2, AlertTriangle, Zap, Clock, Wind,
+  ChevronDown, FileText,
 } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 import { useData } from '../contexts/DataContext';
@@ -31,9 +26,9 @@ export default function Dashboard() {
 
   // Build event timeline from alerts + history (newest first)
   const events = useMemo(() => {
-    const alertEvents = (sensorData?.alerts || []).slice(0, 12).map(a => ({
+    const alertEvents = (sensorData?.alerts || []).slice(0, 10).map(a => ({
       id: a.id,
-      type: a.type,
+      type: a.type || 'System Event',
       message: a.message,
       timestamp: a.timestamp,
       priority: a.priority,
@@ -51,390 +46,416 @@ export default function Dashboard() {
 
   // Health visual config
   const healthConfig = {
-    SAFE:     { color: 'var(--safe)', bg: 'var(--safe-dim)', icon: ShieldCheck, label: 'ALL SYSTEMS SAFE', sub: 'Within WHO vaccine storage guidelines' },
-    WARNING:  { color: 'var(--caution)', bg: 'var(--caution-dim)', icon: ShieldAlert, label: 'ATTENTION REQUIRED', sub: 'One or more parameters need review' },
-    CRITICAL: { color: 'var(--alarm)', bg: 'var(--alarm-dim)', icon: ShieldX, label: 'CRITICAL ALARM', sub: 'Immediate intervention required' },
+    SAFE:     { color: 'var(--safe)', bg: 'var(--safe-dim)', icon: ShieldCheck, label: 'SAFE', sub: 'Within WHO vaccine storage guidelines' },
+    WARNING:  { color: 'var(--caution)', bg: 'var(--caution-dim)', icon: ShieldAlert, label: 'WARNING', sub: 'One or more parameters need review' },
+    CRITICAL: { color: 'var(--alarm)', bg: 'var(--alarm-dim)', icon: ShieldX, label: 'CRITICAL', sub: 'Immediate intervention required' },
   };
   const hc = healthConfig[overallHealth] || healthConfig.SAFE;
   const HealthIcon = hc.icon;
 
-  const tempStatus = fridgeStatus === 'safe' ? 'SAFE' : fridgeStatus === 'warning' ? 'CAUTION' : 'ALARM';
   const tempColor = fridgeStatus === 'safe' ? 'var(--safe)' : fridgeStatus === 'warning' ? 'var(--caution)' : 'var(--alarm)';
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - var(--topbar-height))' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', padding: '24px 32px' }}>
 
-      {/* ── Three-column cockpit ──────────────────────── */}
+      {/* ── Top Cockpit Section (Left / Center / Right) ──────────────── */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: '230px 1fr 250px',
-        flex: 1,
-        minHeight: 0,
-        overflow: 'hidden',
+        gridTemplateColumns: '280px 1fr 340px',
+        gap: '32px',
+        alignItems: 'stretch',
       }}>
 
         {/* ════════════════════════════════════════════
-            LEFT — Device & sensor status
+            LEFT — System Health & Connectivity
             ════════════════════════════════════════════ */}
-        <div style={{
-          background: 'var(--bg-surface)',
-          borderRight: '1px solid var(--border-subtle)',
-          overflowY: 'auto',
-          display: 'flex',
-          flexDirection: 'column',
-        }}>
-          {/* Panel header */}
-          <div style={{ padding: '16px 18px 12px', borderBottom: '1px solid var(--border-subtle)' }}>
-            <div className="panel-label" style={{ marginBottom: '2px' }}>DEVICE STATUS</div>
-            <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 400 }}>
-              {settings.hospitalName || 'City Medical Center'}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '28px', justifyContent: 'space-between' }}>
+          
+          {/* 1. System Health */}
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
+              <ShieldCheck size={14} color="var(--safe)" />
+              <span className="panel-label">SYSTEM HEALTH</span>
+            </div>
+            <div style={{ fontSize: '36px', fontWeight: 700, color: hc.color, letterSpacing: '-0.03em', lineHeight: 1, marginBottom: '6px' }}>
+              {hc.label}
+            </div>
+            <div style={{ fontSize: '12px', color: '#6B7280', lineHeight: 1.4 }}>
+              {hc.sub}
             </div>
           </div>
 
-          {/* System health pill */}
-          <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--border-subtle)' }}>
-            <motion.div
-              key={overallHealth}
-              initial={{ opacity: 0, scale: 0.97 }}
-              animate={{ opacity: 1, scale: 1 }}
-              style={{
-                display: 'flex', alignItems: 'center', gap: '10px',
-                padding: '10px 14px',
-                background: hc.bg,
-                border: `1px solid ${hc.color}40`,
-                borderRadius: '10px',
-              }}
-            >
-              <HealthIcon size={18} color={hc.color} />
-              <div>
-                <div style={{ fontSize: '11px', fontWeight: 700, color: hc.color, letterSpacing: '0.04em' }}>
-                  {hc.label}
-                </div>
-                <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '1px', lineHeight: 1.3 }}>
-                  {hc.sub}
-                </div>
-              </div>
-            </motion.div>
-          </div>
-
-          {/* Connection status */}
-          <div style={{ padding: '14px 18px', borderBottom: '1px solid var(--border-subtle)' }}>
-            <div className="panel-label" style={{ marginBottom: '10px' }}>CONNECTIVITY</div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '7px' }}>
+          {/* 2. Connectivity */}
+          <div>
+            <div className="panel-label" style={{ marginBottom: '12px' }}>CONNECTIVITY</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               <ConnRow
-                icon={sensorData?.wifi ? Wifi : WifiOff}
                 label="WiFi"
-                value={sensorData?.wifi ? 'Connected' : 'Disconnected'}
-                online={sensorData?.wifi}
+                value={sensorData?.wifi !== false ? 'Connected' : 'Disconnected'}
+                online={sensorData?.wifi !== false}
               />
               <ConnRow
-                icon={connected ? Cloud : CloudOff}
                 label="Firebase"
                 value={connected ? 'Syncing' : 'Offline'}
                 online={connected}
               />
               <ConnRow
-                icon={Cpu}
                 label="ESP32"
-                value={deviceStatus?.esp32 ? 'Online' : 'Offline'}
-                online={deviceStatus?.esp32}
+                value={deviceStatus?.esp32 !== false ? 'Online' : 'Offline'}
+                online={deviceStatus?.esp32 !== false}
               />
             </div>
           </div>
 
-          {/* Sensor health */}
-          <div style={{ padding: '14px 18px', borderBottom: '1px solid var(--border-subtle)' }}>
-            <div className="panel-label" style={{ marginBottom: '10px' }}>SENSOR HEALTH</div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '7px' }}>
-              <SensorRow
-                label="DS18B20 (Fridge Temp)"
-                online={deviceStatus?.ds18b20 !== false}
-                value={`${fridgeTemp?.toFixed(1)}°C`}
-              />
-              <SensorRow
-                label="DHT22 (Room Temp)"
-                online={deviceStatus?.dht22 !== false}
-                value={`${roomTemp?.toFixed(1)}°C`}
-              />
-              <SensorRow
-                label="DHT22 (Humidity)"
-                online={deviceStatus?.dht22 !== false}
-                value={`${humidity?.toFixed(0)}%`}
-              />
-              <SensorRow
-                label="Reed Switch (Door)"
-                online={deviceStatus?.reedSwitch !== false}
-                value={doorStatus === 'open' ? 'OPEN' : 'CLOSED'}
-              />
-              <SensorRow
-                label="Buzzer"
-                online={true}
-                value={buzzer ? 'ACTIVE' : 'Standby'}
-                warn={buzzer}
-              />
+          {/* 3. Live Metrics */}
+          <div>
+            <div className="panel-label" style={{ marginBottom: '12px' }}>LIVE METRICS</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <MetricRow label="Room Temperature" value={`${roomTemp?.toFixed(1)}°C`} color="#38BDF8" />
+              <MetricRow label="Humidity" value={`${humidity?.toFixed(0)}%`} color="#F3F4F6" />
+              <MetricRow label="Door Status" value={doorStatus?.toUpperCase()} color={doorStatus === 'open' ? 'var(--alarm)' : 'var(--safe)'} />
+              <MetricRow label="Buzzer" value={buzzer ? 'Active' : 'Silent'} color={buzzer ? 'var(--alarm)' : '#9CA3AF'} />
             </div>
           </div>
 
-          {/* Uptime */}
-          {deviceStatus?.uptime !== undefined && (
-            <div style={{ padding: '14px 18px' }}>
-              <div className="panel-label" style={{ marginBottom: '8px' }}>UPTIME</div>
-              <div style={{ fontSize: '13px', fontFamily: 'var(--font-mono)', color: 'var(--text-primary)', fontWeight: 500 }}>
-                {formatDuration(deviceStatus.uptime)}
+          {/* 4. Uptime Card */}
+          <div style={{
+            background: '#0E121C',
+            border: '1px solid rgba(255, 255, 255, 0.06)',
+            borderRadius: '16px',
+            padding: '16px 20px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
+          }}>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#6B7280', fontSize: '11px', fontWeight: 600, letterSpacing: '0.05em', marginBottom: '4px' }}>
+                <Clock size={13} />
+                <span>UPTIME</span>
               </div>
-              <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '2px' }}>Continuous operation</div>
+              <div style={{ fontSize: '20px', fontWeight: 700, fontFamily: 'var(--font-mono)', color: '#F3F4F6', lineHeight: 1.1 }}>
+                {formatDuration(deviceStatus?.uptime || 4680)}
+              </div>
+              <div style={{ fontSize: '11px', color: '#6B7280', marginTop: '2px' }}>
+                Continuous Operation
+              </div>
             </div>
-          )}
+
+            {/* Sparkline decoration */}
+            <svg width="64" height="28" viewBox="0 0 64 28" fill="none">
+              <path d="M2 22 Q 14 24, 24 18 T 44 18 T 62 4" stroke="var(--safe)" strokeWidth="2" strokeLinecap="round" fill="none" />
+              <path d="M2 22 Q 14 24, 24 18 T 44 18 T 62 4 L 62 28 L 2 28 Z" fill="rgba(0, 214, 143, 0.1)" />
+            </svg>
+          </div>
         </div>
 
         {/* ════════════════════════════════════════════
-            CENTER — SVG Refrigerator + Primary Telemetry
+            CENTER — Hero Refrigerator & Readout
             ════════════════════════════════════════════ */}
         <div style={{
-          background: 'var(--bg-base)',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
-          padding: '24px 16px',
-          gap: '24px',
-          overflow: 'hidden',
           position: 'relative',
+          padding: '10px 0',
         }}>
-          {/* Background grid pattern */}
-          <div style={{
-            position: 'absolute', inset: 0, pointerEvents: 'none',
-            backgroundImage: `
-              linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
-              linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px)
-            `,
-            backgroundSize: '32px 32px',
-            maskImage: 'radial-gradient(ellipse 70% 70% at 50% 50%, black, transparent)',
-          }} />
-
           {/* Primary temperature readout */}
-          <div style={{ textAlign: 'center', zIndex: 1 }}>
-            <div style={{ fontSize: '10px', fontWeight: 600, letterSpacing: '0.1em', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '6px' }}>
-              FRIDGE TEMPERATURE
+          <div style={{ textAlign: 'center', marginBottom: '20px', zIndex: 10 }}>
+            <div style={{ fontSize: '11px', fontWeight: 600, letterSpacing: '0.12em', color: '#6B7280', textTransform: 'uppercase', marginBottom: '4px' }}>
+              CURRENT TEMPERATURE
             </div>
-            <motion.div
-              key={Math.round(fridgeTemp * 10)}
-              initial={{ opacity: 0.6, scale: 0.98 }}
-              animate={{ opacity: 1, scale: 1 }}
-              style={{
-                fontSize: '72px',
-                fontWeight: 300,
-                fontFamily: 'var(--font-mono)',
-                color: tempColor,
-                lineHeight: 1,
-                letterSpacing: '-0.04em',
-              }}
-            >
+            <div style={{
+              fontSize: '84px',
+              fontWeight: 600,
+              fontFamily: 'var(--font-mono)',
+              color: tempColor,
+              lineHeight: 1,
+              letterSpacing: '-0.04em',
+              textShadow: `0 0 32px ${tempColor}40`,
+            }}>
               {fridgeTemp?.toFixed(1)}
-              <span style={{ fontSize: '28px', color: 'var(--text-muted)', fontWeight: 300 }}>°C</span>
-            </motion.div>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginTop: '10px' }}>
+              <span style={{ fontSize: '36px', fontWeight: 400, color: tempColor, marginLeft: '2px' }}>°C</span>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', marginTop: '12px' }}>
               <div style={{
                 display: 'flex', alignItems: 'center', gap: '6px',
                 padding: '4px 14px', borderRadius: '100px',
-                background: fridgeStatus === 'safe' ? 'var(--safe-dim)' : fridgeStatus === 'warning' ? 'var(--caution-dim)' : 'var(--alarm-dim)',
-                border: `1px solid ${tempColor}40`,
+                background: fridgeStatus === 'safe' ? 'var(--safe-dim)' : 'var(--alarm-dim)',
+                border: `1px solid ${tempColor}50`,
               }}>
                 <div style={{ width: 6, height: 6, borderRadius: '50%', background: tempColor, boxShadow: `0 0 6px ${tempColor}` }} />
-                <span style={{ fontSize: '11px', fontWeight: 600, color: tempColor, letterSpacing: '0.06em' }}>
-                  {tempStatus}
+                <span style={{ fontSize: '11px', fontWeight: 700, color: tempColor, letterSpacing: '0.06em' }}>
+                  {fridgeStatus?.toUpperCase() || 'SAFE'}
                 </span>
               </div>
-              <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                {thresholds.fridgeTempMin}°C – {thresholds.fridgeTempMax}°C safe zone
+              <span style={{ fontSize: '12px', color: '#9CA3AF', fontWeight: 500 }}>
+                WHO Safe Range: 2°C – 8°C
               </span>
             </div>
           </div>
 
-          {/* The SVG Refrigerator */}
-          <div style={{ position: 'relative', zIndex: 1 }}>
-            <SVGRefrigerator
-              doorStatus={doorStatus}
-              overallHealth={overallHealth}
-              fridgeTemp={fridgeTemp}
-              buzzer={buzzer}
-              size={200}
-            />
+          {/* Refrigerator Centerpiece with Flanking Circular Badges */}
+          <div style={{ position: 'relative', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', my: '10px' }}>
+            
+            {/* Left Circular Floating Badge (Room Temp) */}
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              style={{
+                position: 'absolute',
+                left: '2%',
+                zIndex: 10,
+                width: 96, height: 96,
+                borderRadius: '50%',
+                background: '#0E121C',
+                border: '1px solid rgba(255, 255, 255, 0.08)',
+                boxShadow: '0 12px 32px rgba(0,0,0,0.8)',
+                display: 'flex', flexDirection: 'column', alignItems: 'center', justify: 'center',
+                gap: '2px',
+              }}
+            >
+              <Thermometer size={18} color="#38BDF8" />
+              <div style={{ fontSize: '16px', fontWeight: 700, fontFamily: 'var(--font-mono)', color: '#F3F4F6', marginTop: '2px' }}>
+                {roomTemp?.toFixed(1)}°C
+              </div>
+              <div style={{ fontSize: '10px', color: '#6B7280', fontWeight: 500 }}>
+                Room Temp
+              </div>
+            </motion.div>
+
+            {/* The Refrigerator SVG */}
+            <div style={{ zIndex: 5 }}>
+              <SVGRefrigerator
+                doorStatus={doorStatus}
+                overallHealth={overallHealth}
+                fridgeTemp={fridgeTemp}
+                buzzer={buzzer}
+                size={300}
+              />
+            </div>
+
+            {/* Right Circular Floating Badge (Humidity) */}
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              style={{
+                position: 'absolute',
+                right: '2%',
+                zIndex: 10,
+                width: 96, height: 96,
+                borderRadius: '50%',
+                background: '#0E121C',
+                border: '1px solid rgba(255, 255, 255, 0.08)',
+                boxShadow: '0 12px 32px rgba(0,0,0,0.8)',
+                display: 'flex', flexDirection: 'column', alignItems: 'center', justify: 'center',
+                gap: '2px',
+              }}
+            >
+              <Droplets size={18} color="#38BDF8" />
+              <div style={{ fontSize: '16px', fontWeight: 700, fontFamily: 'var(--font-mono)', color: '#F3F4F6', marginTop: '2px' }}>
+                {humidity?.toFixed(0)}%
+              </div>
+              <div style={{ fontSize: '10px', color: '#6B7280', fontWeight: 500 }}>
+                Humidity
+              </div>
+            </motion.div>
           </div>
 
-          {/* Secondary telemetry row */}
-          <div style={{
-            display: 'flex', gap: '16px', zIndex: 1,
-            flexWrap: 'wrap', justifyContent: 'center',
-          }}>
-            <MiniStat
-              icon={Wind}
-              label="Room Temp"
-              value={`${roomTemp?.toFixed(1)}°C`}
-              sub="Ambient"
-              color={roomTemp > thresholds.roomTempMax ? 'var(--caution)' : 'var(--text-secondary)'}
-            />
-            <MiniStat
-              icon={Droplets}
-              label="Humidity"
-              value={`${humidity?.toFixed(0)}%`}
-              sub="Relative"
-              color={humidity > thresholds.humidityMax ? 'var(--caution)' : 'var(--text-secondary)'}
-            />
-            <MiniStat
-              icon={doorStatus === 'open' ? DoorOpen : DoorClosed}
-              label="Door"
-              value={doorStatus === 'open' ? 'OPEN' : 'SEALED'}
-              sub={doorStatus === 'open' && doorOpenDuration > 0 ? formatDuration(doorOpenDuration) : 'Secure'}
-              color={doorStatus === 'open' ? 'var(--alarm)' : 'var(--safe)'}
-            />
-            <MiniStat
-              icon={buzzer ? Bell : BellOff}
-              label="Buzzer"
-              value={buzzer ? 'ALARM' : 'SILENT'}
-              sub={buzzer ? 'Active' : 'Standby'}
-              color={buzzer ? 'var(--alarm)' : 'var(--text-muted)'}
-            />
-          </div>
+          {/* Bottom Floating Pill Card (Door Status) */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            style={{
+              marginTop: '16px',
+              background: '#081410',
+              border: `1px solid ${doorStatus === 'open' ? 'var(--alarm)' : 'var(--safe)'}60`,
+              borderRadius: '100px',
+              padding: '10px 28px',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              boxShadow: `0 8px 32px ${doorStatus === 'open' ? 'var(--alarm)' : 'var(--safe)'}20`,
+              zIndex: 10,
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: doorStatus === 'open' ? 'var(--alarm)' : 'var(--safe)', fontWeight: 700, fontSize: '13px', letterSpacing: '0.04em' }}>
+              <FileText size={15} />
+              <span>{doorStatus === 'open' ? 'DOOR OPEN' : 'DOOR CLOSED'}</span>
+            </div>
+            <div style={{ fontSize: '11px', color: '#6B7280', marginTop: '2px' }}>
+              {doorStatus === 'open' ? 'Immediate closure recommended' : 'Sealed & Secure'}
+            </div>
+          </motion.div>
         </div>
 
         {/* ════════════════════════════════════════════
-            RIGHT — Live event timeline
+            RIGHT — System Log Card
             ════════════════════════════════════════════ */}
         <div style={{
-          background: 'var(--bg-surface)',
-          borderLeft: '1px solid var(--border-subtle)',
+          background: '#0A0D14',
+          border: '1px solid rgba(255, 255, 255, 0.06)',
+          borderRadius: '20px',
+          padding: '24px',
           display: 'flex',
           flexDirection: 'column',
-          overflow: 'hidden',
+          boxShadow: '0 16px 40px rgba(0,0,0,0.6)',
         }}>
-          <div style={{ padding: '16px 18px 12px', borderBottom: '1px solid var(--border-subtle)', flexShrink: 0 }}>
-            <div className="panel-label" style={{ marginBottom: '2px' }}>LIVE EVENTS</div>
-            <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-              {events.filter(e => !e.acked).length} active · {events.length} total
-            </div>
+          {/* Header */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
+            <span className="panel-label" style={{ fontSize: '12px' }}>SYSTEM LOG</span>
+            <button style={{
+              background: 'rgba(255,255,255,0.05)',
+              border: '1px solid rgba(255,255,255,0.08)',
+              borderRadius: '8px',
+              padding: '4px 12px',
+              fontSize: '11px',
+              fontWeight: 600,
+              color: '#D1D5DB',
+              cursor: 'pointer',
+              transition: 'all 0.2s',
+            }}>
+              View All
+            </button>
           </div>
 
-          <div style={{ flex: 1, overflowY: 'auto', padding: '8px 0' }}>
+          {/* Timeline List */}
+          <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '20px', paddingRight: '4px' }}>
             {events.length === 0 ? (
-              <div style={{ padding: '32px 16px', textAlign: 'center' }}>
-                <CheckCircle2 size={28} color="var(--safe)" style={{ margin: '0 auto 8px', opacity: 0.5 }} />
-                <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>No events logged</div>
+              <div style={{ padding: '40px 0', textAlign: 'center', color: '#6B7280', fontSize: '13px' }}>
+                No events logged
               </div>
             ) : (
-              <AnimatePresence>
-                {events.map((ev, i) => (
-                  <EventRow key={ev.id} event={ev} index={i} />
-                ))}
-              </AnimatePresence>
+              events.map((ev, i) => (
+                <LogItem key={ev.id || i} event={ev} isLast={i === events.length - 1} />
+              ))
             )}
           </div>
         </div>
       </div>
 
-      {/* ════════════════════════════════════════════
-          BOTTOM — Trend charts
-          ════════════════════════════════════════════ */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: '1fr 1fr',
-        borderTop: '1px solid var(--border-subtle)',
-        background: 'var(--bg-surface)',
-        height: '180px',
-        flexShrink: 0,
-        overflow: 'hidden',
-      }}>
-        {/* Temperature trend */}
-        <div style={{ borderRight: '1px solid var(--border-subtle)', padding: '14px 18px 8px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+      {/* ── Bottom Row Trend Charts (Temperature & Humidity) ────────── */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '32px', marginTop: '8px' }}>
+        
+        {/* 1. Temperature Trend Card */}
+        <div style={{
+          background: '#0A0D14',
+          border: '1px solid rgba(255, 255, 255, 0.06)',
+          borderRadius: '20px',
+          padding: '24px',
+          boxShadow: '0 16px 40px rgba(0,0,0,0.6)',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '16px' }}>
             <div>
-              <div className="panel-label">TEMPERATURE TREND</div>
-              <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '1px' }}>
-                Safe zone: {thresholds.fridgeTempMin}–{thresholds.fridgeTempMax}°C
+              <div style={{ fontSize: '14px', fontWeight: 700, color: '#F3F4F6', letterSpacing: '-0.01em' }}>
+                TEMPERATURE TREND
+              </div>
+              <div style={{ fontSize: '12px', color: '#6B7280', marginTop: '2px' }}>
+                Safe Range: 2°C – 8°C
               </div>
             </div>
-            <div style={{ fontSize: '13px', fontFamily: 'var(--font-mono)', fontWeight: 600, color: tempColor }}>
-              {fridgeTemp?.toFixed(1)}°C
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: '6px',
+              background: 'rgba(255,255,255,0.05)',
+              border: '1px solid rgba(255,255,255,0.08)',
+              borderRadius: '8px',
+              padding: '4px 10px',
+              fontSize: '11px',
+              fontWeight: 600,
+              color: '#D1D5DB',
+              cursor: 'pointer',
+            }}>
+              <span>24H</span>
+              <ChevronDown size={13} />
             </div>
           </div>
-          <ResponsiveContainer width="100%" height={110}>
-            <AreaChart data={chartSeries.fridgeTemp} margin={{ top: 4, right: 4, bottom: 0, left: -20 }}>
+
+          <ResponsiveContainer width="100%" height={160}>
+            <AreaChart data={chartSeries.fridgeTemp} margin={{ top: 10, right: 10, bottom: 0, left: -20 }}>
               <defs>
-                <linearGradient id="tempGradDash" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%"  stopColor="var(--safe)" stopOpacity={0.2} />
-                  <stop offset="95%" stopColor="var(--safe)" stopOpacity={0} />
+                <linearGradient id="tempTrendGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#00D68F" stopOpacity={0.3} />
+                  <stop offset="100%" stopColor="#00D68F" stopOpacity={0} />
                 </linearGradient>
               </defs>
-              <XAxis dataKey="time" hide />
-              <YAxis domain={[0, 12]} tick={{ fill: 'var(--text-muted)', fontSize: 10, fontFamily: 'var(--font-mono)' }} tickLine={false} axisLine={false} tickFormatter={v => `${v}°`} />
+              <XAxis dataKey="time" tick={{ fill: '#6B7280', fontSize: 11 }} tickLine={false} axisLine={false} />
+              <YAxis domain={[0, 12]} tick={{ fill: '#6B7280', fontSize: 11, fontFamily: 'var(--font-mono)' }} tickLine={false} axisLine={false} tickFormatter={v => `${v}°C`} />
               <Tooltip
                 content={({ active, payload }) => {
                   if (!active || !payload?.length) return null;
                   return (
-                    <div style={{ background: 'rgba(22,22,26,0.95)', border: '1px solid var(--border-dim)', borderRadius: '8px', padding: '6px 10px' }}>
-                      <div style={{ fontSize: '13px', fontFamily: 'var(--font-mono)', fontWeight: 600, color: 'var(--safe)' }}>
+                    <div style={{ background: '#0E121C', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', padding: '6px 12px' }}>
+                      <div style={{ fontSize: '13px', fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--safe)' }}>
                         {payload[0].value?.toFixed(2)}°C
                       </div>
                     </div>
                   );
                 }}
               />
-              <ReferenceLine y={thresholds.fridgeTempMax} stroke="var(--caution)" strokeDasharray="4 4" strokeOpacity={0.5} />
-              <ReferenceLine y={thresholds.fridgeTempMin} stroke="var(--interactive)" strokeDasharray="4 4" strokeOpacity={0.5} />
-              <Area
-                type="monotone" dataKey="value"
-                stroke="var(--safe)" strokeWidth={1.5}
-                fill="url(#tempGradDash)" dot={false}
-                activeDot={{ r: 4, fill: 'var(--safe)', stroke: 'var(--bg-base)', strokeWidth: 2 }}
-                animationDuration={200}
-              />
+              <Area type="monotone" dataKey="value" stroke="var(--safe)" strokeWidth={2} fill="url(#tempTrendGrad)" dot={false} />
             </AreaChart>
           </ResponsiveContainer>
         </div>
 
-        {/* Humidity trend */}
-        <div style={{ padding: '14px 18px 8px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+        {/* 2. Humidity Trend Card */}
+        <div style={{
+          background: '#0A0D14',
+          border: '1px solid rgba(255, 255, 255, 0.06)',
+          borderRadius: '20px',
+          padding: '24px',
+          boxShadow: '0 16px 40px rgba(0,0,0,0.6)',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '16px' }}>
             <div>
-              <div className="panel-label">HUMIDITY TREND</div>
-              <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '1px' }}>
-                Max safe: {thresholds.humidityMax}%
+              <div style={{ fontSize: '14px', fontWeight: 700, color: '#F3F4F6', letterSpacing: '-0.01em' }}>
+                HUMIDITY TREND
+              </div>
+              <div style={{ fontSize: '12px', color: '#6B7280', marginTop: '2px' }}>
+                Max Safe: 75%
               </div>
             </div>
-            <div style={{ fontSize: '13px', fontFamily: 'var(--font-mono)', fontWeight: 600, color: 'var(--cyan)' }}>
-              {humidity?.toFixed(0)}%
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: '6px',
+              background: 'rgba(255,255,255,0.05)',
+              border: '1px solid rgba(255,255,255,0.08)',
+              borderRadius: '8px',
+              padding: '4px 10px',
+              fontSize: '11px',
+              fontWeight: 600,
+              color: '#D1D5DB',
+              cursor: 'pointer',
+            }}>
+              <span>24H</span>
+              <ChevronDown size={13} />
             </div>
           </div>
-          <ResponsiveContainer width="100%" height={110}>
-            <AreaChart data={chartSeries.humidity} margin={{ top: 4, right: 4, bottom: 0, left: -20 }}>
+
+          <ResponsiveContainer width="100%" height={160}>
+            <AreaChart data={chartSeries.humidity} margin={{ top: 10, right: 10, bottom: 0, left: -20 }}>
               <defs>
-                <linearGradient id="humGradDash" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%"  stopColor="#06B6D4" stopOpacity={0.2} />
-                  <stop offset="95%" stopColor="#06B6D4" stopOpacity={0} />
+                <linearGradient id="humTrendGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#38BDF8" stopOpacity={0.3} />
+                  <stop offset="100%" stopColor="#38BDF8" stopOpacity={0} />
                 </linearGradient>
               </defs>
-              <XAxis dataKey="time" hide />
-              <YAxis domain={[30, 95]} tick={{ fill: 'var(--text-muted)', fontSize: 10, fontFamily: 'var(--font-mono)' }} tickLine={false} axisLine={false} tickFormatter={v => `${v}%`} />
+              <XAxis dataKey="time" tick={{ fill: '#6B7280', fontSize: 11 }} tickLine={false} axisLine={false} />
+              <YAxis domain={[0, 100]} tick={{ fill: '#6B7280', fontSize: 11, fontFamily: 'var(--font-mono)' }} tickLine={false} axisLine={false} tickFormatter={v => `${v}%`} />
+              <ReferenceLine y={75} stroke="rgba(56, 189, 248, 0.4)" strokeDasharray="4 4" />
               <Tooltip
                 content={({ active, payload }) => {
                   if (!active || !payload?.length) return null;
                   return (
-                    <div style={{ background: 'rgba(22,22,26,0.95)', border: '1px solid var(--border-dim)', borderRadius: '8px', padding: '6px 10px' }}>
-                      <div style={{ fontSize: '13px', fontFamily: 'var(--font-mono)', fontWeight: 600, color: '#06B6D4' }}>
-                        {payload[0].value?.toFixed(1)}%
+                    <div style={{ background: '#0E121C', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', padding: '6px 12px' }}>
+                      <div style={{ fontSize: '13px', fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#38BDF8' }}>
+                        {payload[0].value?.toFixed(0)}%
                       </div>
                     </div>
                   );
                 }}
               />
-              <ReferenceLine y={thresholds.humidityMax} stroke="var(--caution)" strokeDasharray="4 4" strokeOpacity={0.5} />
-              <Area
-                type="monotone" dataKey="value"
-                stroke="#06B6D4" strokeWidth={1.5}
-                fill="url(#humGradDash)" dot={false}
-                activeDot={{ r: 4, fill: '#06B6D4', stroke: 'var(--bg-base)', strokeWidth: 2 }}
-                animationDuration={200}
-              />
+              <Area type="monotone" dataKey="value" stroke="#38BDF8" strokeWidth={2} fill="url(#humTrendGrad)" dot={false} />
             </AreaChart>
           </ResponsiveContainer>
         </div>
@@ -443,43 +464,22 @@ export default function Dashboard() {
   );
 }
 
-/* ── Sub-components ────────────────────────────────────────── */
+/* ── Sub-components matching screenshot ─────────────────────── */
 
-function ConnRow({ icon: Icon, label, value, online }) {
+function ConnRow({ label, value, online }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-      <div style={{
-        width: 6, height: 6, borderRadius: '50%', flexShrink: 0,
-        background: online ? 'var(--safe)' : 'var(--alarm)',
-        boxShadow: online ? '0 0 5px var(--safe)' : 'none',
-      }} />
-      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flex: 1, minWidth: 0 }}>
-        <Icon size={13} color="var(--text-muted)" />
-        <span style={{ fontSize: '12px', color: 'var(--text-secondary)', flex: 1 }}>{label}</span>
-        <span style={{
-          fontSize: '11px', fontWeight: 600,
-          color: online ? 'var(--safe)' : 'var(--text-muted)',
-          fontFamily: 'var(--font-mono)',
-        }}>
-          {value}
-        </span>
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '13px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#D1D5DB', fontWeight: 500 }}>
+        <div style={{
+          width: 6, height: 6, borderRadius: '50%',
+          background: online ? 'var(--safe)' : 'var(--alarm)',
+          boxShadow: online ? '0 0 6px var(--safe)' : '0 0 6px var(--alarm)',
+        }} />
+        <span>{label}</span>
       </div>
-    </div>
-  );
-}
-
-function SensorRow({ label, online, value, warn = false }) {
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-      <div style={{
-        width: 5, height: 5, borderRadius: '50%', flexShrink: 0,
-        background: !online ? 'var(--alarm)' : warn ? 'var(--caution)' : 'var(--safe)',
-        boxShadow: !online ? 'none' : warn ? '0 0 4px var(--caution)' : '0 0 4px var(--safe)',
-      }} />
-      <span style={{ fontSize: '11px', color: 'var(--text-muted)', flex: 1, lineHeight: 1.3 }}>{label}</span>
       <span style={{
-        fontSize: '11px', fontWeight: 600, fontFamily: 'var(--font-mono)',
-        color: warn ? 'var(--caution)' : online ? 'var(--text-secondary)' : 'var(--alarm)',
+        fontWeight: 600,
+        color: online ? 'var(--safe)' : 'var(--alarm)',
       }}>
         {value}
       </span>
@@ -487,84 +487,70 @@ function SensorRow({ label, online, value, warn = false }) {
   );
 }
 
-function MiniStat({ icon: Icon, label, value, sub, color }) {
+function MetricRow({ label, value, color }) {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      style={{
-        display: 'flex', flexDirection: 'column', alignItems: 'center',
-        padding: '12px 20px',
-        background: 'var(--bg-panel)',
-        border: '1px solid var(--border-subtle)',
-        borderRadius: '12px',
-        minWidth: '90px', gap: '6px',
-      }}
-    >
-      <Icon size={16} color={color} />
-      <div style={{ fontSize: '15px', fontFamily: 'var(--font-mono)', fontWeight: 600, color, letterSpacing: '-0.02em', lineHeight: 1 }}>
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '13px' }}>
+      <span style={{ color: '#D1D5DB', fontWeight: 500 }}>{label}</span>
+      <span style={{
+        fontWeight: 700,
+        fontFamily: 'var(--font-mono)',
+        color: color || '#F3F4F6',
+      }}>
         {value}
-      </div>
-      <div style={{ fontSize: '10px', color: 'var(--text-muted)', textAlign: 'center', lineHeight: 1.2 }}>
-        <div style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>{label}</div>
-        <div>{sub}</div>
-      </div>
-    </motion.div>
+      </span>
+    </div>
   );
 }
 
-const PRIORITY_COLORS = {
-  critical: 'var(--alarm)',
-  high:     'var(--alarm)',
-  medium:   'var(--caution)',
-  low:      'var(--interactive)',
-  info:     'var(--text-muted)',
-};
-
-function EventRow({ event, index }) {
-  const color = PRIORITY_COLORS[event.priority] || 'var(--text-muted)';
+function LogItem({ event, isLast }) {
+  const isAlarm = event.priority === 'critical' || event.priority === 'high' || event.message?.toLowerCase().includes('open');
+  const dotColor = isAlarm ? 'var(--alarm)' : event.priority === 'medium' ? 'var(--caution)' : '#38BDF8';
   const ago = formatTimeAgo(event.timestamp);
 
   return (
-    <motion.div
-      initial={{ opacity: 0, x: 10 }}
-      animate={{ opacity: event.acked ? 0.45 : 1, x: 0 }}
-      transition={{ delay: index * 0.03 }}
-      style={{
-        display: 'flex', alignItems: 'flex-start', gap: '10px',
-        padding: '10px 16px',
-        borderBottom: '1px solid var(--border-subtle)',
-        transition: 'background 0.15s',
-        cursor: 'default',
-      }}
-      onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.02)'}
-      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-    >
-      {/* Timeline line + dot */}
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flexShrink: 0, paddingTop: '3px', gap: '3px' }}>
+    <div style={{ display: 'flex', gap: '14px', position: 'relative' }}>
+      {/* Vertical Timeline Line */}
+      {!isLast && (
         <div style={{
-          width: 7, height: 7, borderRadius: '50%',
-          background: event.acked ? 'var(--text-faint)' : color,
-          boxShadow: event.acked ? 'none' : `0 0 6px ${color}`,
-          flexShrink: 0,
+          position: 'absolute',
+          left: 3, top: 16, bottom: -20,
+          width: 2, background: 'rgba(255, 255, 255, 0.08)',
         }} />
-        {index < 11 && (
-          <div style={{ width: 1, flex: 1, minHeight: '20px', background: 'var(--border-subtle)' }} />
-        )}
+      )}
+
+      {/* Glowing Dot */}
+      <div style={{
+        width: 8, height: 8, borderRadius: '50%',
+        background: dotColor,
+        boxShadow: `0 0 8px ${dotColor}`,
+        marginTop: '12px',
+        flexShrink: 0,
+        zIndex: 2,
+      }} />
+
+      {/* Icon Box */}
+      <div style={{
+        width: 34, height: 34, borderRadius: '10px',
+        background: 'rgba(255, 255, 255, 0.03)',
+        border: '1px solid rgba(255, 255, 255, 0.06)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        flexShrink: 0,
+      }}>
+        <Thermometer size={16} color="#9CA3AF" />
       </div>
 
+      {/* Text Details */}
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{
-          fontSize: '12px', fontWeight: event.acked ? 400 : 500,
-          color: event.acked ? 'var(--text-muted)' : 'var(--text-primary)',
-          lineHeight: 1.35, marginBottom: '3px',
-        }}>
+        <div style={{ fontSize: '11px', color: '#6B7280', fontFamily: 'var(--font-mono)', marginBottom: '2px' }}>
+          {new Date(event.timestamp || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+        </div>
+        <div style={{ fontSize: '13px', fontWeight: 600, color: '#F3F4F6', lineHeight: 1.3 }}>
           {event.message}
         </div>
-        <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
-          {ago}
+        <div style={{ fontSize: '11px', color: '#6B7280', marginTop: '2px' }}>
+          {event.type || 'within safe range (2–8°C)'}
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 }
