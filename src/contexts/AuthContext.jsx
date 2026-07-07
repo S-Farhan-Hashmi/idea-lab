@@ -59,7 +59,7 @@ export function AuthProvider({ children }) {
         }
       } catch (fbErr) {
         // Fall through to mock login
-        if (fbErr.code && fbErr.code !== 'auth/invalid-api-key') throw fbErr;
+        if (fbErr.code && !fbErr.code.includes('api-key')) throw fbErr;
       }
 
       // Mock login (demo mode)
