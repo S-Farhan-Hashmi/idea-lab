@@ -135,7 +135,7 @@ export default function Dashboard() {
                 <span>UPTIME</span>
               </div>
               <div style={{ fontSize: '20px', fontWeight: 700, fontFamily: 'var(--font-mono)', color: '#F3F4F6', lineHeight: 1.1 }}>
-                {formatDuration(deviceStatus?.uptime || 4680)}
+                {formatDuration(deviceStatus?.uptime ?? 0)}
               </div>
               <div style={{ fontSize: '11px', color: '#6B7280', marginTop: '2px' }}>
                 Continuous Operation
@@ -373,7 +373,7 @@ export default function Dashboard() {
           </div>
 
           <ResponsiveContainer width="100%" height={160}>
-            <AreaChart data={chartSeries.fridgeTemp} margin={{ top: 10, right: 10, bottom: 0, left: -20 }}>
+            <AreaChart data={chartSeries?.fridgeTemp || []} margin={{ top: 10, right: 10, bottom: 0, left: -20 }}>
               <defs>
                 <linearGradient id="tempTrendGrad" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%" stopColor="#00D68F" stopOpacity={0.3} />
@@ -433,7 +433,7 @@ export default function Dashboard() {
           </div>
 
           <ResponsiveContainer width="100%" height={160}>
-            <AreaChart data={chartSeries.humidity} margin={{ top: 10, right: 10, bottom: 0, left: -20 }}>
+            <AreaChart data={chartSeries?.humidity || []} margin={{ top: 10, right: 10, bottom: 0, left: -20 }}>
               <defs>
                 <linearGradient id="humTrendGrad" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%" stopColor="#38BDF8" stopOpacity={0.3} />

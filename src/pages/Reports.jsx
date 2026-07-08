@@ -10,6 +10,7 @@ import {
 import { useData } from '../contexts/DataContext';
 import { useSettings } from '../contexts/SettingsContext';
 import { generatePDFReport, exportHistoryCSV, exportAlertsCSV } from '../utils/exportHelpers';
+import LoadingScreen from '../components/layout/LoadingScreen';
 import toast from 'react-hot-toast';
 
 function ReportCard({ title, description, period, icon: Icon, color, onGenerate, loading }) {
@@ -67,6 +68,8 @@ export default function Reports() {
   const { settings } = useSettings();
   const [loading, setLoading] = useState(false);
   const [lastGenerated, setLastGenerated] = useState(null);
+
+  if (!sensorData) return <LoadingScreen />;
 
   const history = sensorData?.history ?? [];
   const alerts = sensorData?.alerts ?? [];

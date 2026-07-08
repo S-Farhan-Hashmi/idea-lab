@@ -1,22 +1,21 @@
 /**
- * DataContext — central sensor data store.
- * Subscribes to mockDataService (swap with firebaseService for production).
- * Provides live data, history, alerts, and chart series to all components.
+ * DataContext — Central sensor telemetry store.
+ * Subscribes to firebaseService as the single production source of truth.
+ * Provides live telemetry, history, alerts, and rolling chart series to all components.
+ * React only visualizes telemetry and never generates synthetic history or alerts.
  */
 
 import { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
 import {
   subscribe,
-  startMockData,
-  stopMockData,
   acknowledgeAlert,
   clearAllAlerts,
   setThresholds,
   DEFAULT_THRESHOLDS,
-} from '../services/mockDataService';
+} from '../services/firebaseService';
 
 // ─── Chart series config ─────────────────────────────────────────────────────
-const MAX_CHART_POINTS = 60; // ~2 minutes of data at 2s intervals
+const MAX_CHART_POINTS = 60; // Rolling live dataset window
 
 const DataContext = createContext(null);
 
@@ -36,18 +35,42 @@ export function DataProvider({ children }) {
   chartSeriesRef.current = chartSeries;
 
   const handleData = useCallback((data) => {
+    if (!data) return;
+
     setSensorData(data);
-    setConnected(true);
+    setConnected(Boolean(data.deviceStatus?.firebaseConnected || data.wifi));
+    if (data.thresholds) {
+      setThresholdsState(data.thresholds);
+    }
 
     const now = Date.now();
-    const label = new Date(now).toLocaleTimeString('en-US', {
+    const formatLabel = (ts) => new Date(ts).toLocaleTimeString('en-US', {
       hour: '2-digit',
       minute: '2-digit',
       second: '2-digit',
     });
+    const label = formatLabel(now);
 
     setChartSeries(prev => {
       const trim = (arr) => arr.slice(-MAX_CHART_POINTS + 1);
+
+      // Initialize from historical records if available and chart is empty
+      if (prev.fridgeTemp.length === 0 && data.history && data.history.length > 0) {
+        const historySlice = data.history.slice(-MAX_CHART_POINTS);
+        return {
+          fridgeTemp: historySlice.map(h => ({ time: formatLabel(h.timestamp), value: h.fridgeTemp, ts: h.timestamp })),
+          roomTemp: historySlice.map(h => ({ time: formatLabel(h.timestamp), value: h.roomTemp, ts: h.timestamp })),
+          humidity: historySlice.map(h => ({ time: formatLabel(h.timestamp), value: h.humidity, ts: h.timestamp })),
+          doorEvents: historySlice.map(h => ({ time: formatLabel(h.timestamp), value: h.doorStatus === 'open' ? 1 : 0, status: h.doorStatus, ts: h.timestamp })),
+        };
+      }
+
+      // Avoid adding duplicate timestamp points if data updates faster than 1s
+      const lastPoint = prev.fridgeTemp[prev.fridgeTemp.length - 1];
+      if (lastPoint && now - lastPoint.ts < 900) {
+        return prev;
+      }
+
       return {
         fridgeTemp: [...trim(prev.fridgeTemp), { time: label, value: data.fridgeTemp, ts: now }],
         roomTemp: [...trim(prev.roomTemp), { time: label, value: data.roomTemp, ts: now }],
@@ -63,11 +86,9 @@ export function DataProvider({ children }) {
   }, []);
 
   useEffect(() => {
-    startMockData();
     const unsubscribe = subscribe(handleData);
     return () => {
       unsubscribe();
-      stopMockData();
     };
   }, [handleData]);
 

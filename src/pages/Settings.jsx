@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { useData } from '../contexts/DataContext';
 import { useSettings } from '../contexts/SettingsContext';
+import LoadingScreen from '../components/layout/LoadingScreen';
 import toast from 'react-hot-toast';
 
 function SectionTitle({ icon: Icon, title, subtitle }) {
@@ -68,12 +69,14 @@ function SliderField({ label, value, min, max, step = 0.5, unit, onChange, color
 }
 
 export default function SettingsPage() {
-  const { thresholds, updateThresholds } = useData();
+  const { sensorData, thresholds, updateThresholds } = useData();
   const { settings, updateSettings } = useSettings();
 
   const [localThresh, setLocalThresh] = useState({ ...thresholds });
   const [localSettings, setLocalSettings] = useState({ ...settings });
   const [saved, setSaved] = useState(false);
+
+  if (!sensorData) return <LoadingScreen />;
 
   function handleSave() {
     updateThresholds(localThresh);
@@ -269,9 +272,8 @@ export default function SettingsPage() {
           }}>
             <Info size={16} color="var(--accent-light)" style={{ flexShrink: 0, marginTop: '2px' }} />
             <div style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-              The application is operating in <strong style={{ color: 'var(--accent-light)' }}>Mock Telemetry Mode</strong> for clinical simulation.
-              To link physical ESP32 hardware: update <code style={{ background: 'rgba(255,255,255,0.06)', padding: '2px 6px', borderRadius: '4px', fontFamily: 'var(--font-mono)' }}>src/firebase/config.js</code> with your Firebase Realtime Database parameters.
-              Then replace <code style={{ background: 'rgba(255,255,255,0.06)', padding: '2px 6px', borderRadius: '4px', fontFamily: 'var(--font-mono)' }}>mockDataService</code> with <code style={{ background: 'rgba(255,255,255,0.06)', padding: '2px 6px', borderRadius: '4px', fontFamily: 'var(--font-mono)' }}>firebaseService</code> in <code style={{ background: 'rgba(255,255,255,0.06)', padding: '2px 6px', borderRadius: '4px', fontFamily: 'var(--font-mono)' }}>DataContext.jsx</code>.
+              The application is operating in <strong style={{ color: 'var(--safe)' }}>Live Telemetry Mode</strong> connected to Firebase Realtime Database.
+              Hardware IoT telemetry is streaming directly from the ESP32 via Firebase listeners in <code style={{ background: 'rgba(255,255,255,0.06)', padding: '2px 6px', borderRadius: '4px', fontFamily: 'var(--font-mono)' }}>src/services/firebaseService.js</code>.
             </div>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>

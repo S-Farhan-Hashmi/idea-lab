@@ -7,23 +7,33 @@ import { getDatabase } from 'firebase/database';
 import { getAuth } from 'firebase/auth';
 
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_PROJECT.firebaseapp.com",
-  databaseURL: "https://YOUR_PROJECT-default-rtdb.firebaseio.com",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_PROJECT.appspot.com",
-  messagingSenderId: "YOUR_SENDER_ID",
-  appId: "YOUR_APP_ID"
+  apiKey: "AIzaSyBDqPBsL-qp26Dj7yMJyHVnmsOA6ccMMbk",
+  authDomain: "coldchainmonitor-5cd30.firebaseapp.com",
+  databaseURL: "https://coldchainmonitor-5cd30-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "coldchainmonitor-5cd30",
+  storageBucket: "coldchainmonitor-5cd30.firebasestorage.app",
+  messagingSenderId: "419642973525",
+  appId: "1:419642973525:web:be229b665a9bf2606b63dc"
 };
 
-let app, db, auth;
+let app = null;
+let db = null;
+let auth = null;
 
 try {
-  app = initializeApp(firebaseConfig);
-  db = getDatabase(app);
-  auth = getAuth(app);
+  const isPlaceholder = Object.values(firebaseConfig).some(
+    val => typeof val === 'string' && (val.includes('YOUR_') || val.includes('placeholder'))
+  );
+
+  if (isPlaceholder) {
+    console.warn('Firebase initialization skipped — config contains placeholder credentials (YOUR_PROJECT). Please update src/firebase/config.js with your project credentials.');
+  } else {
+    app = initializeApp(firebaseConfig);
+    db = getDatabase(app);
+    auth = getAuth(app);
+  }
 } catch (err) {
-  console.warn('Firebase initialization skipped — using mock data mode.', err.message);
+  console.warn('Firebase initialization error:', err.message);
 }
 
 export { app, db, auth };

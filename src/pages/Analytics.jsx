@@ -13,6 +13,7 @@ import {
 } from 'recharts';
 import { useData } from '../contexts/DataContext';
 import { formatTemp, formatHumidity, formatDuration } from '../utils/formatters';
+import LoadingScreen from '../components/layout/LoadingScreen';
 
 function StatCard({ title, value, unit, icon: Icon, color, subtitle, index }) {
   return (
@@ -51,6 +52,9 @@ function StatCard({ title, value, unit, icon: Icon, color, subtitle, index }) {
 
 export default function Analytics() {
   const { sensorData } = useData();
+
+  if (!sensorData) return <LoadingScreen />;
+
   const history = sensorData?.history ?? [];
   const alerts = sensorData?.alerts ?? [];
 
@@ -86,7 +90,7 @@ export default function Analytics() {
       const slice = history.filter((_, idx) => idx % 7 === i);
       const temps = slice.map(h => h.fridgeTemp).filter(Boolean);
       const hums = slice.map(h => h.humidity).filter(Boolean);
-      const avg = arr => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : 4.5;
+      const avg = arr => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : 0;
       return {
         day,
         avgTemp: parseFloat(avg(temps).toFixed(2)),

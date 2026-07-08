@@ -10,6 +10,7 @@ import {
 import { useData } from '../contexts/DataContext';
 import { formatTimestamp, formatTimeAgo } from '../utils/formatters';
 import { exportAlertsCSV } from '../utils/exportHelpers';
+import LoadingScreen from '../components/layout/LoadingScreen';
 import toast from 'react-hot-toast';
 
 const ALERT_ICONS = {
@@ -30,6 +31,9 @@ const PRIORITY_CONFIG = {
 
 export default function AlertsPage() {
   const { sensorData, ackAlert, clearAlerts } = useData();
+
+  if (!sensorData) return <LoadingScreen />;
+
   const alerts = sensorData?.alerts ?? [];
 
   const [search, setSearch] = useState('');
@@ -135,8 +139,14 @@ export default function AlertsPage() {
               style={{ padding: '64px', textAlign: 'center', color: 'var(--text-muted)' }}
             >
               <CheckCheck size={40} style={{ margin: '0 auto 16px', opacity: 0.3, color: 'var(--success)' }} />
-              <div style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)' }}>No alerts found</div>
-              <div style={{ fontSize: '13px', marginTop: '6px' }}>All clinical storage parameters are within safe limits or filtered out</div>
+              <div style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                {alerts.length === 0 ? 'No Alerts Yet' : 'No alerts found'}
+              </div>
+              <div style={{ fontSize: '13px', marginTop: '6px' }}>
+                {alerts.length === 0
+                  ? 'No diagnostic events or clinical alarms have been uploaded by the ESP32 yet.'
+                  : 'All clinical storage parameters are within safe limits or filtered out'}
+              </div>
             </motion.div>
           ) : filtered.map((alert, i) => {
             const pcfg = PRIORITY_CONFIG[alert.priority] || PRIORITY_CONFIG.info;

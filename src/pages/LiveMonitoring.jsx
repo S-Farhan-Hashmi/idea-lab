@@ -20,8 +20,8 @@ export default function LiveMonitoring() {
 
   const recentActivity = (alerts || []).slice(0, 10);
 
-  const tempSafe = fridgeTemp >= thresholds.fridgeTempMin && fridgeTemp <= thresholds.fridgeTempMax;
-  const humSafe = humidity <= thresholds.humidityMax;
+  const tempSafe = fridgeTemp >= (thresholds?.fridgeTempMin ?? 2) && fridgeTemp <= (thresholds?.fridgeTempMax ?? 8);
+  const humSafe = humidity <= (thresholds?.humidityMax ?? 75);
 
   return (
     <div className="page-content">
@@ -50,7 +50,7 @@ export default function LiveMonitoring() {
           </div>
         </div>
         <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginLeft: '48px' }}>
-          Real-time sensor readings updating every 2 seconds via ESP32 → Firebase
+          Real-time sensor readings updating via ESP32 → Firebase
         </p>
       </div>
 
@@ -67,7 +67,7 @@ export default function LiveMonitoring() {
           icon={Wind}
           label="Room Temperature"
           value={formatTemp(roomTemp)}
-          status={roomTemp > thresholds.roomTempMax ? 'caution' : 'neutral'}
+          status={roomTemp > (thresholds?.roomTempMax ?? 35) ? 'caution' : 'neutral'}
           note="Ambient"
         />
         <LiveStat
@@ -75,7 +75,7 @@ export default function LiveMonitoring() {
           label="Humidity"
           value={formatHumidity(humidity)}
           status={humSafe ? 'neutral' : 'caution'}
-          note={`Max ${thresholds.humidityMax}%`}
+          note={`Max ${thresholds?.humidityMax ?? 75}%`}
         />
         <LiveStat
           icon={DoorOpen}
@@ -96,15 +96,15 @@ export default function LiveMonitoring() {
       {/* Charts */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '24px' }}>
         <FridgeTempChart
-          data={chartSeries.fridgeTemp}
-          safeMin={thresholds.fridgeTempMin}
-          safeMax={thresholds.fridgeTempMax}
+          data={chartSeries?.fridgeTemp || []}
+          safeMin={thresholds?.fridgeTempMin ?? 2}
+          safeMax={thresholds?.fridgeTempMax ?? 8}
         />
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-          <RoomTempChart data={chartSeries.roomTemp} />
-          <HumidityChart data={chartSeries.humidity} />
+          <RoomTempChart data={chartSeries?.roomTemp || []} />
+          <HumidityChart data={chartSeries?.humidity || []} />
         </div>
-        <DoorEventsChart data={chartSeries.doorEvents} />
+        <DoorEventsChart data={chartSeries?.doorEvents || []} />
       </div>
 
       {/* Activity feed */}

@@ -7,12 +7,16 @@ import { Thermometer, Search, Download, Filter, ChevronLeft, ChevronRight } from
 import { useData } from '../contexts/DataContext';
 import { formatTimestamp, formatTemp, formatHumidity } from '../utils/formatters';
 import { exportHistoryCSV } from '../utils/exportHelpers';
+import LoadingScreen from '../components/layout/LoadingScreen';
 import toast from 'react-hot-toast';
 
 const PAGE_SIZE = 15;
 
 export default function TemperatureHistory() {
   const { sensorData } = useData();
+
+  if (!sensorData) return <LoadingScreen />;
+
   const history = sensorData?.history ?? [];
 
   const [search, setSearch] = useState('');
@@ -135,7 +139,9 @@ export default function TemperatureHistory() {
                     padding: '64px', textAlign: 'center',
                     color: 'var(--text-muted)', fontSize: '13px',
                   }}>
-                    No telemetry records match your filter criteria
+                    {history.length === 0
+                      ? 'No telemetry history recorded yet. Historical data will appear automatically once uploaded by the ESP32.'
+                      : 'No telemetry records match your filter criteria'}
                   </td>
                 </tr>
               ) : paginated.map((row, i) => (
