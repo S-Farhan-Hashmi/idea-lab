@@ -1,27 +1,32 @@
 /**
  * Live Monitoring Page — OS-style full telemetry view
+ * Powered entirely by live Firebase sensor data
  */
+import { useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { Activity, Thermometer, Wind, Droplets, DoorOpen, Bell, CheckCircle2 } from 'lucide-react';
+import { Activity, Thermometer, Wind, Droplets, DoorOpen, Bell, CheckCircle2, Wifi, Clock, Cpu } from 'lucide-react';
 import { useData } from '../contexts/DataContext';
 import { FridgeTempChart, RoomTempChart, HumidityChart, DoorEventsChart } from '../components/charts/LiveCharts';
 import { formatTemp, formatHumidity, formatDuration, formatTimeAgo } from '../utils/formatters';
+import LoadingScreen from '../components/layout/LoadingScreen';
 
 export default function LiveMonitoring() {
   const { sensorData, chartSeries, thresholds } = useData();
 
-  if (!sensorData) return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '60vh', color: 'var(--text-muted)' }}>
-      Connecting to sensor telemetry...
-    </div>
-  );
+  if (!sensorData) return <LoadingScreen />;
 
-  const { fridgeTemp, roomTemp, humidity, doorStatus, doorOpenDuration, buzzer, alerts } = sensorData;
+  const {
+    fridgeTemp, roomTemp, humidity, doorStatus, doorOpenDuration,
+    buzzer, history, deviceStatus,
+  } = sensorData;
 
-  const recentActivity = (alerts || []).slice(0, 10);
+  // Use live history records as the event feed (latest 10, newest first)
+  const recentActivity = useMemo(() => {
+    return (history || []).slice(0, 10);
+  }, [history]);
 
   const tempSafe = fridgeTemp >= (thresholds?.fridgeTempMin ?? 2) && fridgeTemp <= (thresholds?.fridgeTempMax ?? 8);
-  const humSafe = humidity <= (thresholds?.humidityMax ?? 75);
+  const humSafe  = humidity <= (thresholds?.humidityMax ?? 75);
 
   return (
     <div className="page-content">
@@ -50,7 +55,7 @@ export default function LiveMonitoring() {
           </div>
         </div>
         <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginLeft: '48px' }}>
-          Real-time sensor readings updating via ESP32 → Firebase
+          Real-time sensor readings updating via ESP32 → Firebase · {history?.length ?? 0} records stored
         </p>
       </div>
 
@@ -61,7 +66,7 @@ export default function LiveMonitoring() {
           label="Fridge Temperature"
           value={formatTemp(fridgeTemp)}
           status={tempSafe ? 'safe' : 'alarm'}
-          note={tempSafe ? 'Within safe zone' : 'Out of range!'}
+          note={tempSafe ? 'Within safe zone' : 'OUT OF RANGE!'}
         />
         <LiveStat
           icon={Wind}
@@ -93,12 +98,20 @@ export default function LiveMonitoring() {
         />
       </div>
 
+      {/* Device Info Row */}
+      <div style={{
+        display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginBottom: '24px',
+      }}>
+        <DeviceInfoCard icon={Cpu} label="ESP32 Status" value={deviceStatus?.esp32 ? 'Online' : 'Offline'} sub={deviceStatus?.ip || 'No IP'} ok={!!deviceStatus?.esp32} />
+        <DeviceInfoCard icon={Wifi} label="WiFi Signal" value={`${deviceStatus?.wifiStrength ?? 0}%`} sub={`RSSI ${deviceStatus?.rssi ?? '—'} dBm`} ok={(deviceStatus?.wifiStrength ?? 0) > 20} />
+        <DeviceInfoCard icon={Clock} label="Uptime" value={formatDuration(deviceStatus?.uptime ?? 0)} sub="Continuous operation" ok={true} />
+      </div>
+
       {/* Charts */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '24px' }}>
         <FridgeTempChart
           data={chartSeries?.fridgeTemp || []}
-          safeMin={thresholds?.fridgeTempMin ?? 2}
-          safeMax={thresholds?.fridgeTempMax ?? 8}
+          thresholds={thresholds}
         />
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
           <RoomTempChart data={chartSeries?.roomTemp || []} />
@@ -107,24 +120,29 @@ export default function LiveMonitoring() {
         <DoorEventsChart data={chartSeries?.doorEvents || []} />
       </div>
 
-      {/* Activity feed */}
+      {/* Live History Event Feed */}
       <div className="card" style={{ padding: '0', overflow: 'hidden' }}>
-        <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border-subtle)' }}>
+        <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div className="panel-label">LIVE EVENT FEED</div>
+          <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
+            {recentActivity.length} most recent readings
+          </div>
         </div>
         {recentActivity.length === 0 ? (
           <div style={{ padding: '48px', textAlign: 'center', color: 'var(--text-muted)' }}>
             <CheckCircle2 size={28} color="var(--safe)" style={{ margin: '0 auto 10px', opacity: 0.4 }} />
-            <div style={{ fontSize: '13px' }}>No recent events</div>
+            <div style={{ fontSize: '13px' }}>No telemetry history yet — readings will appear here automatically</div>
           </div>
-        ) : recentActivity.map((a, i) => {
-          const color = a.priority === 'critical' || a.priority === 'high' ? 'var(--alarm)' :
-                        a.priority === 'medium' ? 'var(--caution)' : 'var(--text-muted)';
+        ) : recentActivity.map((record, i) => {
+          const fTemp = record.fridgeTemp ?? 0;
+          const isOut = fTemp > (thresholds?.fridgeTempMax ?? 8) || fTemp < (thresholds?.fridgeTempMin ?? 2);
+          const doorOpen = record.doorStatus === 'open';
+          const color = isOut ? 'var(--alarm)' : doorOpen ? 'var(--caution)' : 'var(--text-muted)';
           return (
             <motion.div
-              key={a.id}
+              key={record.id || i}
               initial={{ opacity: 0 }}
-              animate={{ opacity: a.acknowledged ? 0.5 : 1 }}
+              animate={{ opacity: 1 }}
               style={{
                 display: 'flex', gap: '12px', alignItems: 'flex-start',
                 padding: '12px 20px',
@@ -136,8 +154,14 @@ export default function LiveMonitoring() {
             >
               <div style={{ width: 7, height: 7, borderRadius: '50%', background: color, marginTop: '4px', flexShrink: 0, boxShadow: `0 0 4px ${color}` }} />
               <div style={{ flex: 1 }}>
-                <div style={{ fontSize: '13px', color: 'var(--text-primary)', marginBottom: '2px' }}>{a.message}</div>
-                <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>{formatTimeAgo(a.timestamp)}</div>
+                <div style={{ fontSize: '13px', color: 'var(--text-primary)', marginBottom: '2px', fontFamily: 'var(--font-mono)', fontWeight: 600 }}>
+                  {formatTemp(fTemp)} · {formatHumidity(record.humidity ?? 0)} · Door {record.doorStatus?.toUpperCase() ?? '—'}
+                </div>
+                <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
+                  {formatTimeAgo(record.timestamp)} · Room {formatTemp(record.roomTemp ?? 0)}
+                  {isOut ? '  ⚠ Temp out of range' : ''}
+                  {doorOpen ? '  ⚠ Door open' : ''}
+                </div>
               </div>
             </motion.div>
           );
@@ -171,6 +195,31 @@ function LiveStat({ icon: Icon, label, value, status, note }) {
         {value}
       </div>
       <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 400 }}>{note}</div>
+    </motion.div>
+  );
+}
+
+function DeviceInfoCard({ icon: Icon, label, value, sub, ok }) {
+  const color = ok ? 'var(--safe)' : 'var(--alarm)';
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="card"
+      style={{ padding: '14px 18px', display: 'flex', alignItems: 'center', gap: '14px' }}
+    >
+      <div style={{
+        width: 36, height: 36, borderRadius: '10px',
+        background: `${color}15`, border: `1px solid ${color}30`,
+        display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+      }}>
+        <Icon size={16} color={color} />
+      </div>
+      <div>
+        <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600, letterSpacing: '0.04em', marginBottom: '2px' }}>{label.toUpperCase()}</div>
+        <div style={{ fontSize: '15px', fontWeight: 700, fontFamily: 'var(--font-mono)', color }}>{value}</div>
+        <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '1px' }}>{sub}</div>
+      </div>
     </motion.div>
   );
 }
